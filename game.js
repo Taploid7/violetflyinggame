@@ -3,8 +3,6 @@ const ctx = canvas.getContext("2d");
 const violetSprite = new Image();
 violetSprite.src = "assets/violet.png"; 
 
-// --- FIXED PHYSICS VARIABLES ---
-// Gravity is much lower (0.04 instead of 0.10) so she dips much slower
 let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.04, velocity: 0 };
 let score = 0, lives = 3;
 let isGameStarted = false;
@@ -16,7 +14,6 @@ let bgX = 0, bgSpeed = 2, jitterTimer = 0;
 
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz && isGameStarted) {
-        // Gentler upward tap so she doesn't rocket out of control
         violet.velocity = -2.0;
     }
 });
@@ -44,9 +41,6 @@ function update() {
     
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
-    
-    // --- FIXED SHAKING ---
-    // Slower timer increment = slower frequency. 
     jitterTimer += 0.2; 
     
     bgX -= bgSpeed;
@@ -60,8 +54,7 @@ function update() {
     let finalScore = Math.floor(score / 10);
     document.getElementById("score-container").innerText = `Score: ${finalScore}`;
 
-    // --- VICTORY TRIGGER ---
-    if (finalScore >= 100 && !hasWon) { // Wins at 100 points
+    if (finalScore >= 100 && !hasWon) {
         triggerVictoryEvent();
     }
 }
@@ -76,7 +69,6 @@ function render() {
     ctx.fillRect(bgX, 470, canvas.width, 30);
     ctx.fillRect(bgX + canvas.width, 470, canvas.width, 30);
 
-    // Reduced multiplier from 5 to 1.5 so the shake is extremely subtle
     let offset = (isGameActive && !isPausedForQuiz && isGameStarted) ? Math.sin(jitterTimer) * 1.5 : 0;
     
     if (violetSprite.complete && violetSprite.naturalWidth !== 0) {
@@ -95,8 +87,6 @@ function gameLoop() {
 
 function triggerDippedQuizEvent() {
     isPausedForQuiz = true;
-    // --- FIXED ANIMATION ---
-    // Instead of resetting her to the middle, we freeze her at the edge she hit!
     if (violet.y > 250) {
         violet.y = canvas.height - violet.height - 10;
     } else {
@@ -123,15 +113,11 @@ function updateHeartsDisplay() {
 
 function resumeGameAfterSave() {
     isPausedForQuiz = false;
-    // --- FIXED ANIMATION: THE BLAST OFF ---
-    // When she answers correctly, we give her a powerful upward velocity boost 
-    // so the student literally sees her blast back up into the safe zone!
     if (violet.y > 250) {
-        violet.velocity = -4.5; // Blast upwards
+        violet.velocity = -4.5;
     } else {
-        violet.velocity = 1.0; // Gentle push down if she hit the ceiling
+        violet.velocity = 1.0;
     }
-    
     document.getElementById("quiz-modal").classList.add("hidden");
 }
 
