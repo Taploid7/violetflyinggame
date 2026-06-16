@@ -5,8 +5,8 @@ const ctx = canvas.getContext("2d");
 const violetSprite = new Image();
 violetSprite.src = "assets/violet.png"; 
 
-// Game Values (Optimized for slower, smoother flight)
-let violet = { x: 100, y: 200, width: 60, height: 60, gravity: 0.10, velocity: 0 };
+// Game Values (Calibrated safely for center placement)
+let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.10, velocity: 0 };
 let score = 0;
 let lives = 3;
 let isGameActive = true;
@@ -18,20 +18,20 @@ const bgSpeed = 2;
 
 // --- DYNAMIC ENGINE SHAKING VARIABLES ---
 let jitterTimer = 0;
-const jitterSpeed = 0.8; // Fast frequency for engine purr
-const jitterAmount = 5;  // Shakes 5 pixels up/down for visible feedback
+const jitterSpeed = 0.8; 
+const jitterAmount = 5;  
 
 // Track spacebar inputs
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz) {
-        violet.velocity = -3.2; // Smooth upward lift tap
+        violet.velocity = -3.2; 
     }
 });
 
 function update() {
     if (!isGameActive || isPausedForQuiz) return;
 
-    // Apply standard engine physics gravity (Slow descent profile)
+    // Apply standard engine physics gravity
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
 
@@ -44,8 +44,8 @@ function update() {
         bgX = 0;
     }
 
-    // Checking Bottom/Top Collision boundaries
-    if (violet.y + violet.height >= canvas.height || violet.y <= 0) {
+    // Checking Bottom/Top Collision boundaries safely (Leaves 10px breathing room)
+    if (violet.y + violet.height >= canvas.height - 10 || violet.y <= 10) {
         triggerDippedQuizEvent();
     }
 
@@ -57,17 +57,16 @@ function render() {
     // Clear canvas setup
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Continuous background generation render pipeline loop
-    ctx.fillStyle = "#2c3e50"; // Dark sky backdrop
+    // Continuous background sky generation
+    ctx.fillStyle = "#2c3e50"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw running track placeholders
+    // Draw running track floor ground base indicators
     ctx.fillStyle = "#34495e";
-    ctx.fillRect(bgX, 450, canvas.width, 50);
-    ctx.fillRect(bgX + canvas.width, 450, canvas.width, 50);
+    ctx.fillRect(bgX, 470, canvas.width, 30);
+    ctx.fillRect(bgX + canvas.width, 470, canvas.width, 30);
 
     // Calculate engine jitter offset position
-    // Creates a constant buzzing effect while flying, freezes perfectly when paused
     let currentJitter = (isGameActive && !isPausedForQuiz) ? Math.sin(jitterTimer) * jitterAmount : 0;
     let renderedY = violet.y + currentJitter;
 
@@ -89,9 +88,11 @@ function gameLoop() {
 
 function triggerDippedQuizEvent() {
     isPausedForQuiz = true;
-    violet.y = 200; // Reset safely to the center screen line
+    violet.y = 220; // Safe midpoint reset
     violet.velocity = 0;
     
+    // Explicitly hide Game Over card when quiz shows up
+    document.getElementById("game-over-screen").classList.add("hidden");
     document.getElementById("quiz-modal").classList.remove("hidden");
     fetchAIQuestion(); 
 }
@@ -114,6 +115,9 @@ function updateHeartsDisplay() {
 
 function resumeGameAfterSave() {
     isPausedForQuiz = false;
+    violet.y = 220;
+    violet.velocity = 0;
+    document.getElementById("quiz-modal").classList.add("hidden");
 }
 
 function endGame() {
@@ -126,11 +130,12 @@ function endGame() {
 function resetGame() {
     lives = 3;
     score = 0;
-    violet.y = 200;
+    violet.y = 220;
     violet.velocity = 0;
     isGameActive = true;
     isPausedForQuiz = false;
     updateHeartsDisplay();
+    document.getElementById("quiz-modal").classList.add("hidden");
     document.getElementById("game-over-screen").classList.add("hidden");
 }
 

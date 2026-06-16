@@ -1,11 +1,55 @@
-/* AI Quiz Overlay Box (Fixed Width Layout) */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #2c3e50;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    width: 800px;
+    height: 500px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+canvas {
+    background-color: #70c5ce;
+    display: block;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Master Hidden Rule */
+.hidden {
+    display: none !important;
+}
+
+/* AI Quiz Overlay Box */
 #quiz-modal, #game-over-screen {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -20,7 +64,7 @@
     padding: 30px;
     border-radius: 15px;
     text-align: center;
-    max-width: 600px; /* Increased width to prevent narrow squishing */
+    max-width: 600px;
     width: 85%;
     box-shadow: 0 5px 25px rgba(0,0,0,0.4);
     box-sizing: border-box;
@@ -40,7 +84,7 @@
 }
 
 #options-container {
-    display: grid; /* Grid layout looks much better for choices */
+    display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 20px;
@@ -60,4 +104,22 @@
 .option-btn:hover {
     background-color: #2980b9;
     transform: scale(1.02);
+}
+
+/* Game Over Card Styling */
+#game-over-screen h1 {
+    font-size: 48px;
+    color: #e74c3c;
+    margin-bottom: 10px;
+}
+
+#restart-btn {
+    padding: 15px 30px;
+    font-size: 20px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 20px;
 }
