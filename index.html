@@ -10,9 +10,16 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="500"></canvas>
         
-        <div id="ui-layer">
+        <div id="ui-layer" class="hidden">
             <div id="hearts-container">❤️❤️❤️</div>
             <div id="score-container">Score: 0</div>
+        </div>
+
+        <div id="start-screen">
+            <h1>Violet the Pilot</h1>
+            <p>Help Violet navigate Taiwan! Press Spacebar to fly up.</p>
+            <p>Answer English vocabulary questions if you dip too low!</p>
+            <button id="start-btn" onclick="startGameNow()">Start Flight 🛫</button>
         </div>
 
         <div id="quiz-modal" class="hidden">
@@ -20,8 +27,7 @@
                 <h2 id="modal-title">Oh no! Violet is dipping!</h2>
                 <p id="instruction">Answer correctly to fly back up!</p>
                 <div id="question-text">Loading question...</div>
-                <div id="options-container">
-                    </div>
+                <div id="options-container"></div>
             </div>
         </div>
 
