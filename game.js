@@ -7,7 +7,7 @@ violetSprite.src = "assets/violet.png";
 const bgImage = new Image();
 bgImage.src = "assets/background.png";
 
-let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.04, velocity: 0 };
+let violet = { x: 100, y: 180, width: 60, height: 60, gravity: 0.04, velocity: 0 };
 let score = 0, lives = 3;
 let isGameStarted = false;
 let isGameActive = false;
@@ -29,7 +29,7 @@ function startGameNow() {
     hasWon = false;
     lives = 3; 
     score = 0; 
-    violet.y = 220;
+    violet.y = 180;
     violet.velocity = 0;
     
     document.getElementById("start-screen").classList.add("hidden");
@@ -47,9 +47,21 @@ function update() {
     violet.y += violet.velocity;
     jitterTimer += 0.2; 
     
-    bgX -= bgSpeed;
-    if (bgX <= -canvas.width) bgX = 0;
+    // Track background looping bounds by evaluating aspect ratios dynamically
+    if (bgImage.complete && bgImage.naturalWidth > 0) {
+        let scaleFactor = canvas.height / bgImage.naturalHeight;
+        let scaledWidth = bgImage.naturalWidth * scaleFactor;
+        
+        bgX -= bgSpeed;
+        if (bgX <= -scaledWidth) {
+            bgX = 0; // Seamless jump reset point
+        }
+    } else {
+        bgX -= bgSpeed;
+        if (bgX <= -canvas.width) bgX = 0;
+    }
     
+    // Bounds trigger checks
     if (violet.y + violet.height >= canvas.height - 30 || violet.y <= 10) {
         triggerDippedQuizEvent();
     }
@@ -66,14 +78,17 @@ function update() {
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // UNCOMPRESSED SYSTEM SCALING RENDER ENGINE
     if (bgImage.complete && bgImage.naturalWidth !== 0) {
-        ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
-        ctx.drawImage(bgImage, bgX + canvas.width, 0, canvas.width, canvas.height);
+        let scaleFactor = canvas.height / bgImage.naturalHeight;
+        let scaledWidth = bgImage.naturalWidth * scaleFactor;
+        
+        // Draw primary image tile and secondary follower side by side seamlessly
+        ctx.drawImage(bgImage, bgX, 0, scaledWidth, canvas.height);
+        ctx.drawImage(bgImage, bgX + scaledWidth, 0, scaledWidth, canvas.height);
     } else {
-        ctx.fillStyle = "#3b5998"; 
+        ctx.fillStyle = "#70c5ce"; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#2c3e50";
-        ctx.fillRect(0, 470, canvas.width, 30);
     }
 
     let offset = (isGameActive && !isPausedForQuiz && isGameStarted) ? Math.sin(jitterTimer) * 1.5 : 0;

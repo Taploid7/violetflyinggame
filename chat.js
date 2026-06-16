@@ -1,4 +1,4 @@
-const VERCEL_BACKEND_URL = "https://game1-shfe-git-main-taploid7s-projects.vercel.app/api/chat";
+const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
 const vocabularyWords = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", "Lawn Mower", 
@@ -15,20 +15,13 @@ async function fetchAIQuestion() {
     const questionTextElement = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
 
-    questionTextElement.innerText = "Connecting to air traffic control AI...";
+    questionTextElement.innerText = "Connecting to Flight Control AI...";
     optionsContainer.innerHTML = ""; 
 
-    const promptText = `You are an ESL English teacher for lower-school elementary students in Taiwan. 
-    Create a very simple, 1-sentence multiple choice question testing the vocabulary word: "${randomWord}".
-    
-    CRITICAL INSTRUCTION: Provide exactly one Chinese translation helper line in brackets for the core sentence context if needed, but keep the UI clean.
-    
-    Return your answer EXACTLY as a raw JSON object string with nothing else. Format:
-    {
-      "question": "The sentence using or asking about the word...",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctIndex": 0
-    }`;
+    // Optimized pure instructions to ensure valid JSON data output without formatting errors
+    const promptText = `Generate a multiple choice question testing the English definition of the vocabulary word "${randomWord}" for young students. Return ONLY a single JSON object. Do not include markdown formatting, backticks, or code block markers. 
+    JSON Structure:
+    {"question": "What does the word ... mean?", "options": ["Option A", "Option B", "Option C", "Option D"], "correctIndex": 0}`;
 
     try {
         const response = await fetch(VERCEL_BACKEND_URL, {
@@ -37,16 +30,29 @@ async function fetchAIQuestion() {
             body: JSON.stringify({ prompt: promptText })
         });
 
-        if (!response.ok) throw new Error("Server network error");
+        if (!response.ok) throw new Error("API Connection Failed");
 
         const data = await response.json();
-        const rawPayload = data.reply || data.text;
-        const quizData = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
+        let rawPayload = data.reply || data.text;
         
+        // Strip out stray backticks if they sneak past filters
+        if (typeof rawPayload === "string") {
+            rawPayload = rawPayload.replace(/```json/g, "").replace(/```/g, "").trim();
+        }
+        
+        let quizData = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
+        
+        // Randomly shuffle options array so index position varies dynamically every single run
+        let items = quizData.options.map((opt, i) => ({ text: opt, isCorrect: i === quizData.correctIndex }));
+        items.sort(() => Math.random() - 0.5);
+        
+        quizData.options = items.map(item => item.text);
+        quizData.correctIndex = items.findIndex(item => item.isCorrect);
+
         displayAIQuestion(quizData);
 
     } catch (error) {
-        console.warn("AI fetch failed, rendering offline backup question:", error);
+        console.warn("AI Generation failed or timed out. Initiating client-side engine:", error);
         fallbackQuestion(randomWord);
     }
 }
@@ -69,15 +75,30 @@ function displayAIQuestion(quizData) {
 }
 
 function fallbackQuestion(word) {
+    // Dynamically generate scrambled placeholders if connection ever goes offline
+    let wrongMeanings = [
+        `An action related to moving quickly`,
+        `A mechanical process or tool assembly`,
+        `Something completely unrelated to ${word}`,
+        `An object used inside standard classrooms`
+    ];
+    
+    let options = [`The true vocabulary definition matching ${word}`];
+    while(options.length < 4) {
+        let randIdx = Math.floor(Math.random() * wrongMeanings.length);
+        if(!options.includes(wrongMeanings[randIdx])) {
+            options.push(wrongMeanings[randIdx]);
+        }
+    }
+    
+    // Scramble the location index of the accurate answer choice randomly
+    let items = options.map((opt, i) => ({ text: opt, original: i === 0 }));
+    items.sort(() => Math.random() - 0.5);
+    
     const mockData = {
-        question: `What does the book vocabulary word "${word}" mean?`,
-        options: [
-            `A useful tool or concept matching: ${word}`, 
-            "Something completely unrelated", 
-            "An unrelated classroom action", 
-            "A standard food item description"
-        ],
-        correctIndex: 0
+        question: `What does the vocabulary word "${word}" mean?`,
+        options: items.map(i => i.text),
+        correctIndex: items.findIndex(i => i.original)
     };
     displayAIQuestion(mockData);
 }
