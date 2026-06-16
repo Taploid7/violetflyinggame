@@ -39,6 +39,22 @@
             <p id="final-score">You explored Taiwan!</p>
             <button id="restart-btn" onclick="resetGame()">Fly Again</button>
         </div>
+
+        <div id="victory-screen" class="hidden">
+            <div class="victory-content">
+                <div class="trophy">🏆</div>
+                <h1>Best Pilot!</h1>
+                <p>You successfully navigated Taiwan!</p>
+                <div class="confetti-container">
+                    <div class="confetti"></div>
+                    <div class="confetti"></div>
+                    <div class="confetti"></div>
+                    <div class="confetti"></div>
+                    <div class="confetti"></div>
+                </div>
+                <button id="win-restart-btn" onclick="resetGame()">Play Again</button>
+            </div>
+        </div>
     </div>
 
     <script src="chat.js"></script>
