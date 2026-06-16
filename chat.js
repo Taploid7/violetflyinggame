@@ -1,9 +1,10 @@
 const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
-let nextQuestionCache = null;
-let isFetchingQuestion = false;
+// 🚀 NEW: Array structure to hold the 10 preloaded questions
+let questionPool = [];
+const TOTAL_QUESTIONS_NEEDED = 10;
+let currentQuestionIndex = 0;
 
-// Custom Core Vocabulary Bank List
 const MY_WORD_BANK = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
     "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
@@ -17,21 +18,21 @@ const fallbackQuestions = [
     { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 }
 ];
 
-async function prefetchNextQuestion() {
-    if (isFetchingQuestion || nextQuestionCache) return;
-    isFetchingQuestion = true;
+// 🚀 NEW: Batched loop loader that pulls all questions sequentially on initial launch
+async function preloadAllQuestions() {
+    console.log(`[Terminal Log]: 🛫 Starting batch preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
     
-    const actionButton = document.getElementById("action-button");
-    if (actionButton && !nextQuestionCache) {
-        actionButton.innerText = "Loading AI Questions... ⏳";
-        actionButton.disabled = true;
-        actionButton.style.opacity = "0.7";
-        actionButton.style.cursor = "not-allowed";
-    }
+    // Shuffle the word bank list so matches don't run in the exact same sequence order
+    const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
-    const randomTargetWord = MY_WORD_BANK[Math.floor(Math.random() * MY_WORD_BANK.length)];
+    for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
+        const targetWord = shuffledWords[i % shuffledWords.length];
+        let success = false;
+        let attempts = 0;
 
-    const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${randomTargetWord}".
+        while (!success && attempts < 2) {
+            try {
+                const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${targetWord}".
 Format your entire response exactly like this example layout text and do not include markdown blocks, symbols, or extra characters:
 Question: What does the word "Diligent" mean?
 A) Hard-working and careful
@@ -40,45 +41,58 @@ C) Angry and loud
 D) Small and fast
 Correct: A`;
 
-    try {
-        const response = await fetch(VERCEL_BACKEND_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: systemPrompt })
-        });
+                const response = await fetch(VERCEL_BACKEND_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: systemPrompt })
+                });
 
-        if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
-        
-        const data = await response.json();
-        if (!data.reply) throw new Error("Empty response payload framework.");
+                if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
+                const data = await response.json();
+                if (!data.reply) throw new Error("Empty payload from server.");
 
-        const cleanParsedQuestion = parseRawTextToQuiz(data.reply);
-        if (cleanParsedQuestion) {
-            nextQuestionCache = cleanParsedQuestion;
-            console.log(`[Terminal Log]: ✅ Gemini AI question pre-loaded for: ${randomTargetWord}`);
-            
-            if (actionButton) {
-                actionButton.innerText = "Start Flight 🛫";
-                actionButton.disabled = false;
-                actionButton.style.opacity = "1";
-                actionButton.style.cursor = "pointer";
+                const parsedQuestion = parseRawTextToQuiz(data.reply);
+                if (parsedQuestion) {
+                    questionPool.push(parsedQuestion);
+                    success = true;
+                    console.log(`[Terminal Log]: Cache position [${i + 1}/10] loaded successfully for: ${targetWord}`);
+                } else {
+                    throw new Error("Regex structural parse mismatch.");
+                }
+            } catch (error) {
+                attempts++;
+                console.warn(`⚠️ Fetch attempt ${attempts} failed for "${targetWord}". Retrying...`);
             }
-        } else {
-            throw new Error("Text parsing schema structural mismatch.");
         }
-    } catch (error) {
-        console.error("❌ AI Fetch Layer Failure. Using Fallback:", error.message);
-        nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
-        
-        if (actionButton) {
-            actionButton.innerText = "Start Flight 🛫";
-            actionButton.disabled = false;
-            actionButton.style.opacity = "1";
-            actionButton.style.cursor = "pointer";
+
+        // If both attempts fail to reach the live API, load a clean fallback item gracefully
+        if (!success) {
+            console.error(`❌ Fetching completely failed for "${targetWord}". Injecting safe fallback dynamic node item.`);
+            const fallbackItem = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+            questionPool.push({...fallbackItem, question: `[Local] ${fallbackItem.question}`});
         }
-    } finally {
-        isFetchingQuestion = false;
+
+        // Update loading bar progress values mathematically
+        updateProgressBar(questionPool.length);
     }
+
+    // Unlock the entry flight button once the cache array is full
+    const actionButton = document.getElementById("action-button");
+    if (actionButton) {
+        actionButton.innerText = "Start Flight 🛫";
+        actionButton.disabled = false;
+        actionButton.style.opacity = "1";
+        actionButton.style.cursor = "pointer";
+    }
+}
+
+function updateProgressBar(count) {
+    const progressFill = document.getElementById("flight-progress-fill");
+    const progressText = document.getElementById("progress-text");
+    const percentage = Math.floor((count / TOTAL_QUESTIONS_NEEDED) * 100);
+
+    if (progressFill) progressFill.style.width = `${percentage}%`;
+    if (progressText) progressText.innerText = `Preloading Gemini AI Questions: ${count} / ${TOTAL_QUESTIONS_NEEDED} (${percentage}%)`;
 }
 
 function parseRawTextToQuiz(rawText) {
@@ -102,25 +116,6 @@ function parseRawTextToQuiz(rawText) {
                 correct: letterMapping[correctMatch[1].toUpperCase()]
             };
         }
-        
-        // Secondary Line-Split Fallback Parsing Route
-        const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length >= 6) {
-            const question = lines[0].replace(/^(Question:\s*|Q:\s*)/i, "");
-            const choices = [
-                lines[1].replace(/^[A]\)?\s*/i, ""),
-                lines[2].replace(/^[B]\)?\s*/i, ""),
-                lines[3].replace(/^[C]\)?\s*/i, ""),
-                lines[4].replace(/^[D]\)?\s*/i, "")
-            ];
-            const lastLine = lines[lines.length - 1];
-            const letterMatch = lastLine.match(/([A-D])/i);
-            
-            if (letterMatch) {
-                const letterMapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
-                return { question, options: choices, correct: letterMapping[letterMatch[1].toUpperCase()] };
-            }
-        }
         return null;
     } catch (e) {
         return null;
@@ -132,12 +127,13 @@ function useLoadedQuestion() {
     const questionText = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
 
-    if (!nextQuestionCache) {
-        nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
-    }
+    // Pull directly from our 10 preloaded questions
+    let currentQuestion = questionPool[currentQuestionIndex];
 
-    const currentQuestion = nextQuestionCache;
-    nextQuestionCache = null;
+    // Safety fallback loop in case of array boundary index exceptions
+    if (!currentQuestion) {
+        currentQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+    }
 
     questionText.innerText = currentQuestion.question;
     optionsContainer.innerHTML = "";
@@ -151,7 +147,6 @@ function useLoadedQuestion() {
     });
 
     if (quizModal) quizModal.classList.remove("hidden");
-    prefetchNextQuestion(); 
 }
 
 function verifyPlayerAnswer(selectedIndex, correctIndex) {
@@ -159,16 +154,17 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
+        // Move forward to tracking next question element index in our pool cache array
+        currentQuestionIndex = (currentQuestionIndex + 1) % TOTAL_QUESTIONS_NEEDED;
         if (typeof resumeFlight === "function") resumeFlight();
     } else {
         if (typeof applyDamage === "function") applyDamage();
     }
 }
 
-// Global scope attachment mapping layout
-window.prefetchNextQuestion = prefetchNextQuestion;
 window.useLoadedQuestion = useLoadedQuestion;
 
+// Trigger batch preloading execution immediately on page loading completion
 document.addEventListener("DOMContentLoaded", () => {
-    prefetchNextQuestion();
+    preloadAllQuestions();
 });

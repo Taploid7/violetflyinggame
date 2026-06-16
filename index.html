@@ -14,12 +14,14 @@
         <div class="plane-emoji">🛩️</div>
         
         <p>Help Violet navigate Taiwan! Press Spacebar to fly up.</p>
-        <p><strong>Target Goal: Reach a score of 200 to win!</strong></p>
+        <p><strong>Target Goal: Answer 10 questions correctly to reach 200 points!</strong></p>
 
-        <button id="action-button" onclick="useLoadedQuestion()">Loading AI Questions... ⏳</button>
+        <button id="action-button" onclick="useLoadedQuestion()" disabled style="opacity: 0.7; cursor: not-allowed;">
+            Preloading AI Flight Plan... ⏳
+        </button>
 
         <div class="progress-tracker">
-            <span id="progress-text">Flight Progress: 0 / 200</span>
+            <span id="progress-text">Syncing with Gemini AI: 0%</span>
             <div class="progress-bar-container">
                 <div id="flight-progress-fill"></div>
             </div>
