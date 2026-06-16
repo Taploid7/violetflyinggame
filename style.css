@@ -1,290 +1,221 @@
-body {
+/* =========================================================================
+   🛩️ VIOLET THE PILOT - CUTESY INTERFACE STYLESHEET
+   ========================================================================= */
+
+/* --- Global Reset & Playful Typography --- */
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    background-color: #1a252f;
-    font-family: 'Fredoka', 'Arial', sans-serif;
-    font-weight: 500;
+}
+
+body {
+    background: #eef9ff;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color: #2c3e50;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    height: 100vh;
-    overflow: hidden;
+    justify-content: center;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-#game-container {
+/* --- Main Menu Interface Card --- */
+.main-card {
+    background: #ffffff;
+    padding: 35px 25px;
+    border-radius: 24px;
+    box-shadow: 0 12px 32px rgba(112, 197, 206, 0.25);
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+    margin: 20px auto;
+    border: 3px solid #bce5ec;
     position: relative;
-    width: 800px;
-    height: 500px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-    border-radius: 16px;
-    background-color: #70c5ce;
-    overflow: hidden;
 }
 
-canvas {
-    display: block;
-    border-radius: 16px;
+h1 {
+    font-size: 32px;
+    color: #2980b9;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 0px #fff, 2px 2px 0px #bce5ec;
 }
 
-#ui-layer {
-    position: absolute;
-    top: 25px;
-    left: 25px;
-    right: 25px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 26px;
-    font-weight: bold;
+p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #5a738e;
+    margin-bottom: 12px;
+}
+
+strong {
+    color: #27ae60;
+}
+
+/* --- Cutesy Bouncing Plane Animation --- */
+.plane-emoji {
+    font-size: 64px;
+    margin: 15px 0;
+    display: inline-block;
+    animation: cuteFloat 2.5s ease-in-out infinite;
+}
+
+@keyframes cuteFloat {
+    0% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-12px) rotate(-3deg);
+    }
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+}
+
+/* --- Playful Action Launch Button --- */
+#action-button {
+    background: linear-gradient(135deg, #5dade2, #2ecc71);
     color: white;
-    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
-    pointer-events: none;
-    z-index: 5;
+    border: none;
+    padding: 14px 32px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(46, 204, 113, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-top: 15px;
 }
 
-.hidden {
-    display: none !important;
+#action-button:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 20px rgba(46, 204, 113, 0.4);
+    background: linear-gradient(135deg, #3498db, #27ae60);
 }
 
-#start-screen, #quiz-modal, #game-over-screen, #victory-screen {
-    position: absolute;
+#action-button:active:not(:disabled) {
+    transform: translateY(1px) scale(0.98);
+}
+
+#action-button:disabled {
+    background: #d5dbdb;
+    color: #7f8c8d;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* --- Cutesy AI Question Preloading Progress Bar --- */
+.progress-tracker {
+    width: 100%;
+    margin: 25px auto 5px auto;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: #34495e;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #f2f4f4;
+    border-radius: 30px;
+    overflow: hidden;
+    margin-top: 10px;
+    border: 2px solid #e5e8e8;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+#flight-progress-fill {
+    height: 100%;
+    width: 0%; /* Driven dynamically by chat.js up to 100% */
+    background: linear-gradient(90deg, #ffaa44, #5dade2, #2ecc71);
+    background-size: 200% 100%;
+    animation: progressGlow 2s linear infinite;
+    border-radius: 30px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes progressGlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+/* --- Interactive Quiz Overlay Modal --- */
+.modal {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 10;
-    text-align: center;
-    box-sizing: border-box;
-}
-
-#start-screen {
-    background: linear-gradient(135deg, #2980b9, #6dd5fa, #ffffff);
+    background: rgba(44, 62, 80, 0.6);
+    backdrop-filter: blur(4px);
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
-    color: #1a252f;
-}
-
-#start-screen h1 {
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 700;
-    font-size: 56px;
-    color: #ffffff;
-    margin: 0 0 15px 0;
-    text-shadow: 3px 3px 0px #2980b9;
-    animation: smoothFloat 2s infinite alternate ease-in-out;
-}
-
-@keyframes smoothFloat {
-    0% { transform: translateY(0px); }
-    100% { transform: translateY(-12px); }
-}
-
-#start-screen p {
-    font-size: 18px;
-    margin: 6px 0;
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-#quiz-modal {
-    background-color: rgba(28, 40, 51, 0.85);
-    display: flex;
     justify-content: center;
-    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
 }
 
 .modal-content {
     background: #ffffff;
-    color: #2c3e50;
-    padding: 35px;
-    border-radius: 24px;
-    max-width: 550px;
-    width: 85%;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    padding: 30px;
+    border-radius: 28px;
+    max-width: 520px;
+    width: 90%;
+    text-align: center;
+    border: 4px solid #5dade2;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.15);
+    animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.modal-content h2 {
-    color: #e74c3c;
-    font-size: 28px;
-    margin-top: 0;
+@keyframes modalPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 #question-text {
-    font-size: 22px;
-    font-weight: 600;
-    margin: 25px 0;
+    font-size: 20px;
+    color: #2c3e50;
+    margin-bottom: 22px;
+    font-weight: 700;
     line-height: 1.4;
 }
 
-#options-container {
+/* --- Quiz Answer Buttons Layout --- */
+.options-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
+    margin-top: 15px;
 }
 
-/* --- KID-FRIENDLY TACTILE BUTTONS --- */
 .option-btn {
-    font-family: 'Fredoka', sans-serif;
+    padding: 14px 20px;
+    font-size: 16px;
     font-weight: 600;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 14px;
+    color: #34495e;
+    border: 2px solid #d5dbdb;
+    border-radius: 16px;
     cursor: pointer;
-    font-size: 18px;
-    box-shadow: 0 6px 0px #2980b9;
-    transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    top: 0;
+    background: #fdfefe;
+    transition: all 0.2s ease;
+    text-align: center;
 }
 
 .option-btn:hover {
-    background-color: #2980b9;
-    top: -3px;
-    box-shadow: 0 9px 0px #1f618d;
+    background: #ebf5fb;
+    border-color: #5dade2;
+    color: #2980b9;
+    transform: translateY(-2px);
 }
 
 .option-btn:active {
-    top: 4px;
-    box-shadow: 0 2px 0px #1a252f;
+    transform: translateY(0px);
 }
 
-#game-over-screen {
-    background: linear-gradient(135deg, #2c3e50, #1a252f);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-}
-
-#game-over-screen h1 {
-    font-size: 56px;
-    color: #c0392b;
-    text-shadow: 3px 3px 0px #7f8c8d;
-    margin: 0 0 10px 0;
-}
-
-#start-btn, #restart-btn {
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    padding: 16px 45px;
-    font-size: 24px;
-    background-color: #2ecc71;
-    color: white;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    margin-top: 30px;
-    box-shadow: 0 6px 0px #27ae60;
-    transition: all 0.12s ease-out;
-    position: relative;
-    top: 0;
-}
-
-#start-btn:hover, #restart-btn:hover {
-    background-color: #27ae60;
-    top: -4px;
-    box-shadow: 0 10px 0px #1e8449;
-}
-
-#start-btn:active, #restart-btn:active {
-    top: 4px;
-    box-shadow: 0 2px 0px #145a32;
-}
-
-#victory-screen {
-    background: linear-gradient(135deg, #11998e, #38ef7d);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 20;
-    overflow: hidden;
-}
-
-.victory-content {
-    text-align: center;
-    color: white;
-}
-
-.trophy {
-    font-size: 100px;
-    margin-bottom: 5px;
-    animation: trophyBounce 0.7s infinite alternate ease-in-out;
-}
-
-@keyframes trophyBounce {
-    0% { transform: translateY(0) scale(1); }
-    100% { transform: translateY(-25px) scale(1.1); }
-}
-
-.victory-content h1 {
-    font-family: 'Fredoka', sans-serif;
-    font-size: 68px;
-    color: #f1c40f;
-    margin: 0;
-    text-shadow: 3px 3px 0px #d35400;
-}
-
-.victory-content p {
-    font-size: 24px;
-    font-weight: 600;
-}
-
-#win-restart-btn {
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    padding: 15px 45px;
-    font-size: 24px;
-    background-color: #f1c40f;
-    color: #2c3e50;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    margin-top: 25px;
-    box-shadow: 0 6px 0px #f39c12;
-    transition: all 0.12s ease;
-    position: relative;
-    top: 0;
-}
-
-#win-restart-btn:hover {
-    background-color: #f39c12;
-    top: -4px;
-    box-shadow: 0 10px 0px #d35400;
-}
-
-#win-restart-btn:active {
-    top: 4px;
-    box-shadow: 0 2px 0px #a04000;
-}
-
-.confetti-container {
-    position: absolute;
-    top: -50px;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.confetti {
-    width: 16px;
-    height: 16px;
-    position: absolute;
-    animation: fall 3s infinite linear;
-}
-
-.confetti:nth-child(1) { left: 20%; background-color: #3498db; animation-delay: 0s; }
-.confetti:nth-child(2) { left: 40%; background-color: #9b59b6; animation-delay: 1.2s; }
-.confetti:nth-child(3) { left: 60%; background-color: #f1c40f; animation-delay: 0.5s; }
-.confetti:nth-child(4) { left: 80%; background-color: #e67e22; animation-delay: 2s; }
-.confetti:nth-child(5) { left: 10%; background-color: #e74c3c; animation-delay: 2.5s; }
-
-@keyframes fall {
-    0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
+/* --- State Rules --- */
+.hidden {
+    display: none !important;
 }
