@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 module.exports = async function handler(req, res) {
+  // Enforce global CORS headers so GitHub Pages can connect securely without blocks
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,28 +18,35 @@ module.exports = async function handler(req, res) {
     const { prompt } = req.body;
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Using gemini-2.5-flash for the fastest possible load speeds
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 250,
+        temperature: 0.7
+      }
+    });
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    let aiText = response.text();
+    let aiText = response.text().trim();
 
-    // Cleans out markdown code wrappers if AI includes them
-    if (aiText.includes("```json")) {
-      aiText = aiText.split("```json")[1].split("```")[0];
-    } else if (aiText.includes("```")) {
-      aiText = aiText.split("```")[1].split("```")[0];
+    // Secondary sanitization safety sweep
+    if (aiText.startsWith("```")) {
+      aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
     }
 
-    return res.status(200).json({ reply: aiText.trim() });
+    return res.status(200).json({ reply: aiText });
 
   } catch (globalError) {
     console.error("Vercel Backend execution error:", globalError);
     
+    // High stability local fallback safety net
     const emergencyObject = {
-      question: "Air traffic control lost connection briefly! Click any answer below to clear the path safely.",
+      question: "Air Traffic Control lost signal briefly! Choose an option below to clear the path safely.",
       options: [
-        "Fly back up safely! [飛上去]",
+        "Fly back up safely! 🚀",
         "Proceed back to flight coordinates",
         "Clear runway pathway options",
         "Engage engine thrust systems"

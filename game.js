@@ -15,12 +15,51 @@ let isPausedForQuiz = false;
 let hasWon = false;
 
 let bgX = 0, bgSpeed = 1.5, jitterTimer = 0;
+let dynamicThemeColor = "#70c5ce"; 
+
+bgImage.onload = function() {
+    dynamicThemeColor = getAverageRGB(bgImage);
+};
 
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz && isGameStarted) {
         violet.velocity = -2.0;
     }
 });
+
+function getAverageRGB(imgEl) {
+    const blockSize = 5;
+    const defaultColor = "#70c5ce";
+    let canvasTmp = document.createElement('canvas');
+    let ctxTmp = canvasTmp.getContext && canvasTmp.getContext('2d');
+    let data, width, height;
+    let i = -4, length, count = 0;
+    let rgb = { r: 0, g: 0, b: 0 };
+
+    if (!ctxTmp) return defaultColor;
+    height = canvasTmp.height = imgEl.naturalHeight || imgEl.height;
+    width = canvasTmp.width = imgEl.naturalWidth || imgEl.width;
+    ctxTmp.drawImage(imgEl, 0, 0);
+
+    try {
+        data = ctxTmp.getImageData(0, 0, width, height);
+    } catch(e) {
+        return defaultColor;
+    }
+
+    length = data.data.length;
+    while ((i += blockSize * 4) < length) {
+        ++count;
+        rgb.r += data.data[i];
+        rgb.g += data.data[i+1];
+        rgb.b += data.data[i+2];
+    }
+    rgb.r = Math.floor(rgb.r / count);
+    rgb.g = Math.floor(rgb.g / count);
+    rgb.b = Math.floor(rgb.b / count);
+
+    return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+}
 
 function startGameNow() {
     isGameStarted = true; 
@@ -38,6 +77,9 @@ function startGameNow() {
     document.getElementById("victory-screen").classList.add("hidden");
     document.getElementById("ui-layer").classList.remove("hidden");
     updateHeartsDisplay();
+
+    // PRE-FETCH INITIATED: Quietly grabs the first question before any crash occurs!
+    prefetchNextQuestion();
 }
 
 function update() {
@@ -47,21 +89,16 @@ function update() {
     violet.y += violet.velocity;
     jitterTimer += 0.2; 
     
-    // Track background looping bounds by evaluating aspect ratios dynamically
     if (bgImage.complete && bgImage.naturalWidth > 0) {
         let scaleFactor = canvas.height / bgImage.naturalHeight;
         let scaledWidth = bgImage.naturalWidth * scaleFactor;
-        
         bgX -= bgSpeed;
-        if (bgX <= -scaledWidth) {
-            bgX = 0; // Seamless jump reset point
-        }
+        if (bgX <= -scaledWidth) bgX = 0;
     } else {
         bgX -= bgSpeed;
         if (bgX <= -canvas.width) bgX = 0;
     }
     
-    // Bounds trigger checks
     if (violet.y + violet.height >= canvas.height - 30 || violet.y <= 10) {
         triggerDippedQuizEvent();
     }
@@ -78,16 +115,13 @@ function update() {
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // UNCOMPRESSED SYSTEM SCALING RENDER ENGINE
     if (bgImage.complete && bgImage.naturalWidth !== 0) {
         let scaleFactor = canvas.height / bgImage.naturalHeight;
         let scaledWidth = bgImage.naturalWidth * scaleFactor;
-        
-        // Draw primary image tile and secondary follower side by side seamlessly
         ctx.drawImage(bgImage, bgX, 0, scaledWidth, canvas.height);
         ctx.drawImage(bgImage, bgX + scaledWidth, 0, scaledWidth, canvas.height);
     } else {
-        ctx.fillStyle = "#70c5ce"; 
+        ctx.fillStyle = dynamicThemeColor; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
@@ -115,8 +149,11 @@ function triggerDippedQuizEvent() {
         violet.y = 15;
     }
     violet.velocity = 0;
+    
     document.getElementById("quiz-modal").classList.remove("hidden");
-    fetchAIQuestion(); 
+    
+    // INSTANT LOAD: Uses the question already waiting in background memory!
+    useLoadedQuestion(); 
 }
 
 function deductHeart() {
@@ -125,7 +162,8 @@ function deductHeart() {
     if (lives <= 0) {
         endGame();
     } else {
-        fetchAIQuestion();
+        // Loads another question from cache if they guess wrong
+        useLoadedQuestion();
     }
 }
 
