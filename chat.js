@@ -1,4 +1,4 @@
-const VERCEL_BACKEND_URL = "[https://game1-shfe.vercel.app/api/chat](https://game1-shfe.vercel.app/api/chat)";
+const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
 const vocabularyWords = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", "Lawn Mower", 
@@ -9,18 +9,44 @@ const vocabularyWords = [
 ];
 
 let currentCorrectIndex = 0;
-let cachedQuizData = null; // Background memory slot for pre-fetched questions
+let cachedQuizData = null; 
 let isPrefetching = false;
 
-// Quietly fetches the next question while the student is flying
+// Clean out markdown ticks, extra spacing, or stray text characters
+function cleanAndParseJSON(rawText) {
+    let cleanText = rawText.trim();
+    
+    // Remove markdown block headers if they exist
+    if (cleanText.includes("```json")) {
+        cleanText = cleanText.split("```json")[1].split("```")[0];
+    } else if (cleanText.includes("```")) {
+        cleanText = cleanText.split("```")[1].split("```")[0];
+    }
+    
+    cleanText = cleanText.trim();
+    
+    // Locate the first opening bracket and last closing bracket to isolate pure JSON
+    const firstBracket = cleanText.indexOf("{");
+    const lastBracket = cleanText.lastIndexOf("}");
+    
+    if (firstBracket !== -1 && lastBracket !== -1) {
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+    }
+    
+    return JSON.parse(cleanText);
+}
+
 async function prefetchNextQuestion() {
     if (isPrefetching) return;
     isPrefetching = true;
 
     const randomWord = vocabularyWords[Math.floor(Math.random() * vocabularyWords.length)];
-    const promptText = `Generate a child-friendly multiple choice question testing the true definition of the word "${randomWord}". Return ONLY a JSON object. No markdown, no backticks.
-    Format:
-    {"question": "What does the word ... mean?", "options": ["Option A", "Option B", "Option C", "Option D"], "correctIndex": 0}`;
+    
+    // Enforce an absolute role-play rule in the prompt
+    const promptText = `You are a quiz engine backend. Generate a multiple-choice question testing the true definition of the English word "${randomWord}". 
+    Respond ONLY with a raw JSON object matching the schema below. No conversational words, no introductory text, no markdown block backticks.
+    
+    {"question": "What does the word \\"${randomWord}\\" mean?", "options": ["Option Definition 1", "Option Definition 2", "Option Definition 3", "Option Definition 4"], "correctIndex": 0}`;
 
     try {
         const response = await fetch(VERCEL_BACKEND_URL, {
@@ -29,16 +55,13 @@ async function prefetchNextQuestion() {
             body: JSON.stringify({ prompt: promptText })
         });
 
-        if (!response.ok) throw new Error("Network down");
+        if (!response.ok) throw new Error("API Connection Dropped");
 
         const data = await response.json();
-        let rawPayload = data.reply;
+        const rawPayload = data.reply || data.text;
         
-        if (typeof rawPayload === "string") {
-            rawPayload = rawPayload.replace(/```json/g, "").replace(/```/g, "").trim();
-        }
-        
-        let quizData = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
+        // Run our bulletproof cleaning parser engine
+        let quizData = cleanAndParseJSON(rawPayload);
         
         // Randomly scramble options arrays instantly on reception
         let items = quizData.options.map((opt, i) => ({ text: opt, isCorrect: i === quizData.correctIndex }));
@@ -47,21 +70,19 @@ async function prefetchNextQuestion() {
         quizData.options = items.map(item => item.text);
         quizData.correctIndex = items.findIndex(item => item.isCorrect);
 
-        cachedQuizData = quizData; // Successfully saved to background cache memory!
+        cachedQuizData = quizData; 
     } catch (error) {
-        console.warn("Background prefetch delayed; building emergency backup payload.", error);
+        console.warn("AI generation parser failed; deploying safe client-side dynamic dictionary backup:", error);
         cachedQuizData = generateFallbackPayload(randomWord);
     } finally {
         isPrefetching = false;
     }
 }
 
-// Spawns the screen items immediately out of pre-fetched background memory
 function useLoadedQuestion() {
     const questionTextElement = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
     
-    // If the network hasn't returned a question yet, run a fast fallback generator
     if (!cachedQuizData) {
         const randomWord = vocabularyWords[Math.floor(Math.random() * vocabularyWords.length)];
         cachedQuizData = generateFallbackPayload(randomWord);
@@ -79,23 +100,27 @@ function useLoadedQuestion() {
         optionsContainer.appendChild(button);
     });
 
-    // Wipe used cache slot clean and immediately start downloading the next one
     cachedQuizData = null;
     prefetchNextQuestion();
 }
 
 function generateFallbackPayload(word) {
-    let wrongMeanings = [
-        `An action related to moving quickly`,
-        `A mechanical process or tool assembly`,
-        `Something completely unrelated to ${word}`,
-        `An object used inside standard classrooms`
+    // Dictionary backup maps true definitions to break loop patterns
+    const dictionary = {
+        "Wrench": ["A hand tool used for twisting bolts and nuts", "A footwear accessory", "A device used to warm meals", "A type of musical instrument"],
+        "Sweater": ["A knitted garment worn to keep warm", "A plastic storage container", "A fast-moving running vehicle", "A tool used for digging gardens"],
+        "Esteem": ["High respect, admiration, or value for someone", "A heavy liquid used in car engines", "A feeling of deep confusion", "A loud noise made by aircraft"],
+        "Grateful": ["Feeling or showing thanks and appreciation", "Angry about an unexpected delay", "Extremely tired after long exercise", "Unsure of directions on a map"]
+    };
+
+    let dataset = dictionary[word] || [
+        `The correct vocabulary definition matching the word "${word}"`,
+        `An incorrect definition action block`,
+        `A completely unrelated concept choice`,
+        `A description of an unrelated item or tool`
     ];
-    let options = [`The true definition matching "${word}"`];
-    while(options.length < 4) {
-        let randIdx = Math.floor(Math.random() * wrongMeanings.length);
-        if(!options.includes(wrongMeanings[randIdx])) options.push(wrongMeanings[randIdx]);
-    }
+
+    let options = [...dataset];
     let items = options.map((opt, i) => ({ text: opt, original: i === 0 }));
     items.sort(() => Math.random() - 0.5);
     
