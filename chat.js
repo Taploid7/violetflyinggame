@@ -1,130 +1,140 @@
 const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
-const vocabularyWords = [
-    "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", "Lawn Mower", 
-    "Engine", "Elaborate", "Scratch", "Sweater", "Contraptions", "Engineering", 
-    "Hazards", "Coveralls", "Obnoxious", "Beamed", "Frantically", "Altitude", 
-    "Canoeing", "Precision", "Grateful", "Miserable", "Appetite", "Jubilantly", 
-    "Valor", "Esteem"
+let nextQuestionCache = null;
+let isFetchingQuestion = false;
+
+// 1. YOUR CUSTOM VOCABULARY WORD BANK
+const MY_WORD_BANK = [
+    "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
+    "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
+    "Contraptions", "Engineering", "Hazards", "Coveralls", "Obnoxious", 
+    "Beamed", "Frantically", "Altitude", "Canoeing", "Precision", 
+    "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
 ];
 
-let currentCorrectIndex = 0;
-let cachedQuizData = null; 
-let isPrefetching = false;
-
-function cleanAndParseJSON(rawText) {
-    let cleanText = rawText.trim();
-    if (cleanText.includes("```json")) {
-        cleanText = cleanText.split("```json")[1].split("```")[0];
-    } else if (cleanText.includes("```")) {
-        cleanText = cleanText.split("```")[1].split("```")[0];
-    }
-    
-    const firstBracket = cleanText.indexOf("{");
-    const lastBracket = cleanText.lastIndexOf("}");
-    if (firstBracket !== -1 && lastBracket !== -1) {
-        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
-    }
-    return JSON.parse(cleanText);
-}
+// Safe local fallback generator if the network fails
+const fallbackQuestions = [
+    { question: "What does the word 'Reassemble' mean?", options: ["To put pieces back together", "To break apart completely", "To move very quickly", "To clear out space"], correct: 0 },
+    { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 }
+];
 
 async function prefetchNextQuestion() {
-    if (isPrefetching) return false;
-    isPrefetching = true;
-    
-    if (window.logDebug) window.logDebug("⏳ Requesting Gemini AI question...");
+    if (isFetchingQuestion || nextQuestionCache) return;
+    isFetchingQuestion = true;
+    updateDebugTerminal("⏳ Requesting Gemini AI question...", "yellow");
 
-    const randomWord = vocabularyWords[Math.floor(Math.random() * vocabularyWords.length)];
-    const promptText = `You are a quiz engine backend. Generate a multiple-choice question testing the true definition of the English word "${randomWord}". 
-    Respond ONLY with a raw JSON object matching the schema below. No conversational words, no introductory text, no markdown block backticks.
-    {"question": "What does the word \\"${randomWord}\\" mean?", "options": ["Option Definition 1", "Option Definition 2", "Option Definition 3", "Option Definition 4"], "correctIndex": 0}`;
+    // Pick a random word from your specific list to force Gemini to use it
+    const randomTargetWord = MY_WORD_BANK[Math.floor(Math.random() * MY_WORD_BANK.length)];
+
+    const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${randomTargetWord}".
+Format your entire response exactly like this example layout text and do not include markdown blocks, symbols, or extra characters:
+Question: What does the word "Diligent" mean?
+A) Hard-working and careful
+B) Lazy and slow
+C) Angry and loud
+D) Small and fast
+Correct: A`;
 
     try {
         const response = await fetch(VERCEL_BACKEND_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: promptText })
+            body: JSON.stringify({ prompt: systemPrompt })
         });
 
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-
+        
         const data = await response.json();
-        const rawPayload = data.reply || data.text;
-        
-        let quizData = cleanAndParseJSON(rawPayload);
-        
-        let items = quizData.options.map((opt, i) => ({ text: opt, isCorrect: i === quizData.correctIndex }));
-        items.sort(() => Math.random() - 0.5);
-        
-        quizData.options = items.map(item => item.text);
-        quizData.correctIndex = items.findIndex(item => item.isCorrect);
+        if (!data.reply) throw new Error("Empty payload from server template.");
 
-        cachedQuizData = quizData; 
-        if (window.logDebug) window.logDebug("✅ Gemini API fully loaded!");
-        return true;
-        
+        const cleanParsedQuestion = parseRawTextToQuiz(data.reply);
+        if (cleanParsedQuestion) {
+            nextQuestionCache = cleanParsedQuestion;
+            updateDebugTerminal(`✅ Gemini AI question pre-loaded for: ${randomTargetWord}`, "green");
+        } else {
+            throw new Error("Text parsing schema structural mismatch.");
+        }
     } catch (error) {
-        if (window.logDebug) window.logDebug("❌ AI Fetch FAILED! Using Fallback. Error: " + error.message);
         console.error("AI Error:", error);
-        cachedQuizData = generateFallbackPayload(randomWord);
-        return true; // Return true so fallback lets game unlock
+        updateDebugTerminal(`❌ AI Fetch FAILED! Using Fallback. Error: ${error.message}`, "red");
+        nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
     } finally {
-        isPrefetching = false;
+        isFetchingQuestion = false;
+    }
+}
+
+function parseRawTextToQuiz(rawText) {
+    try {
+        // Clear any markdown wrapper text safely if present
+        const cleanText = rawText.replace(/```json|```/g, "").trim();
+        
+        const questionMatch = cleanText.match(/Question:\s*(.*)/i);
+        const optAMatch = cleanText.match(/A\)\s*(.*)/i);
+        const optBMatch = cleanText.match(/B\)\s*(.*)/i);
+        const optCMatch = cleanText.match(/C\)\s*(.*)/i);
+        const optDMatch = cleanText.match(/D\)\s*(.*)/i);
+        const correctMatch = cleanText.match(/Correct:\s*([A-D])/i);
+
+        if (questionMatch && optAMatch && optBMatch && optCMatch && optDMatch && correctMatch) {
+            const choices = [optAMatch[1].trim(), optBMatch[1].trim(), optCMatch[1].trim(), optDMatch[1].trim()];
+            const letterMapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+            
+            return {
+                question: questionMatch[1].trim(),
+                options: choices,
+                correct: letterMapping[correctMatch[1].toUpperCase()]
+            };
+        }
+        return null;
+    } catch (e) {
+        return null;
     }
 }
 
 function useLoadedQuestion() {
-    const questionTextElement = document.getElementById("question-text");
+    const quizModal = document.getElementById("quiz-modal");
+    const questionText = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
-    
-    if (!cachedQuizData) {
-        if (window.logDebug) window.logDebug("⚠️ No cache found! Generating emergency fallback.");
-        const randomWord = vocabularyWords[Math.floor(Math.random() * vocabularyWords.length)];
-        cachedQuizData = generateFallbackPayload(randomWord);
-    } else {
-        if (window.logDebug) window.logDebug("🎯 Injecting pre-loaded question to UI.");
+
+    if (!nextQuestionCache) {
+        nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
     }
 
-    questionTextElement.innerText = cachedQuizData.question;
-    optionsContainer.innerHTML = ""; 
-    currentCorrectIndex = cachedQuizData.correctIndex;
+    const currentQuestion = nextQuestionCache;
+    nextQuestionCache = null;
 
-    cachedQuizData.options.forEach((optionText, index) => {
+    questionText.innerText = currentQuestion.question;
+    optionsContainer.innerHTML = "";
+
+    currentQuestion.options.forEach((option, index) => {
         const button = document.createElement("button");
         button.className = "option-btn";
-        button.innerText = optionText;
-        button.onclick = () => checkAnswer(index, currentCorrectIndex);
+        button.innerText = option;
+        button.onclick = () => verifyPlayerAnswer(index, currentQuestion.correct);
         optionsContainer.appendChild(button);
     });
 
-    cachedQuizData = null;
+    quizModal.classList.remove("hidden");
     prefetchNextQuestion(); 
 }
 
-function generateFallbackPayload(word) {
-    let options = [
-        `The true definition matching "${word}"`,
-        `An action related to moving quickly`,
-        `Something completely unrelated to ${word}`,
-        `An object used inside standard classrooms`
-    ];
-    let items = options.map((opt, i) => ({ text: opt, original: i === 0 }));
-    items.sort(() => Math.random() - 0.5);
-    
-    return {
-        question: `What does the vocabulary word "${word}" mean?`,
-        options: items.map(i => i.text),
-        correctIndex: items.findIndex(i => i.original)
-    };
-}
+function verifyPlayerAnswer(selectedIndex, correctIndex) {
+    const quizModal = document.getElementById("quiz-modal");
+    quizModal.classList.add("hidden");
 
-function checkAnswer(selectedIndex, correctIndex) {
     if (selectedIndex === correctIndex) {
-        if (window.logDebug) window.logDebug("✨ Correct answer! Resuming flight.");
-        document.getElementById("quiz-modal").classList.add("hidden");
-        resumeGameAfterSave(); 
+        updateDebugTerminal("✨ Correct answer! Resuming flight.", "green");
+        if (typeof resumeFlight === "function") resumeFlight();
     } else {
-        if (window.logDebug) window.logDebug("💔 Wrong answer! Deducting heart.");
-        deductHeart(); 
+        updateDebugTerminal("💥 Wrong answer! Damage sustained.", "red");
+        if (typeof applyDamage === "function") applyDamage();
     }
 }
+
+function updateDebugTerminal(message, color) {
+    console.log(`[Terminal Log]: ${message}`);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    prefetchNextQuestion();
+});
