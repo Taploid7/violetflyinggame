@@ -8,7 +8,6 @@ let questionPool = [];
 const TOTAL_QUESTIONS_NEEDED = 10;
 let currentQuestionIndex = 0;
 
-// Dynamic word selection array mapped across standard vocabulary modules
 const MY_WORD_BANK = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
     "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
@@ -17,25 +16,43 @@ const MY_WORD_BANK = [
     "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
 ];
 
-// 🚀 FAILSAFE INSTANT RECOVERY POOL (Keeps the progress bar filling even on network 500 drops!)
+// 🚀 EASY KID-FRIENDLY RECOVERY POOL
 const fallbackQuestions = [
-    { question: "What does the word 'Reassemble' mean?", options: ["To put pieces back together", "To break apart completely", "To move very quickly", "To clear out space"], correct: 0 },
-    { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 },
-    { question: "What does the word 'Hazards' mean?", options: ["Safe environments", "Potential sources of danger", "Tools used for digging", "Types of dynamic airplanes"], correct: 1 },
-    { question: "What does the word 'Altitude' mean?", options: ["The speed of an object", "The height of an object above sea level", "The weight of a fuel tank", "The direction of wind currents"], correct: 1 }
+    { 
+        question: "What does the word 'Reassemble' mean?", 
+        options: ["To put pieces back together", "To break something completely", "To run super fast", "To clean up your room"], 
+        correct: 0 
+    },
+    { 
+        question: "What does the word 'Precision' mean?", 
+        options: ["Being perfectly exact and correct", "Moving around in a clumsy way", "A heavy truck or tractor", "Feeling totally lost"], 
+        correct: 0 
+    },
+    { 
+        question: "What does the word 'Hazards' mean?", 
+        options: ["Safe and clean places", "Dangerous things that can hurt you", "Tools used for digging dirt", "Fast toy airplanes"], 
+        correct: 1 
+    },
+    { 
+        question: "What does the word 'Altitude' mean?", 
+        options: ["How fast something can run", "How high up something is in the sky", "How much a gas tank weighs", "Which way the wind blows"], 
+        correct: 1 
+    }
 ];
 
-/**
- * Runs asynchronously on DOM launch to bundle all questions sequentially
- */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function preloadAllQuestions() {
-    console.log(`[Terminal Log]: Starting batch preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
+    console.log(`[Terminal Log]: Starting paced preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
     const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
     for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
         const targetWord = shuffledWords[i % shuffledWords.length];
         let success = false;
         let attempts = 0;
+
+        // 🚀 PACING DELAY: Prevents slamming the serverless functions simultaneously
+        await delay(300);
 
         while (!success && attempts < 2) {
             try {
@@ -48,11 +65,17 @@ C) Angry and loud
 D) Small and fast
 Correct: A`;
 
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+
                 const response = await fetch(VERCEL_BACKEND_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: systemPrompt })
+                    body: JSON.stringify({ prompt: systemPrompt }),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeoutId);
 
                 if (!response.ok) throw new Error(`HTTP Status ${response.status}`);
                 const data = await response.json();
@@ -62,24 +85,31 @@ Correct: A`;
                 if (parsedQuestion) {
                     questionPool.push(parsedQuestion);
                     success = true;
+                    console.log(`[Preloader]: Cached question for "${targetWord}" via Gemini.`);
                 } else {
                     throw new Error("Text structural parse divergence error.");
                 }
             } catch (error) {
+                console.warn(`[Preloader Warning]: Fetch failure for "${targetWord}" (Attempt ${attempts + 1}): ${error.message}`);
                 attempts++;
+                if (attempts < 2) await delay(500);
             }
         }
 
-        // 🚀 SAFE FALLBACK INTERCEPT: Inject local asset matrix if remote API breaks
+        // 🚀 FALLBACK RECOVERY: Keeps the progress bar moving even if network errors happen
         if (!success) {
+            console.log(`[Preloader]: Injecting local fallback question asset for "${targetWord}".`);
             const fallbackItem = fallbackQuestions[i % fallbackQuestions.length];
-            questionPool.push({ ...fallbackItem });
+            questionPool.push({
+                ...fallbackItem,
+                question: `What does the word "${targetWord}" mean?`
+            });
         }
 
         updateProgressBar(questionPool.length);
     }
 
-    // 🛫 UNLOCK LAUNCHPAD: Transform title button once loading hits 100%
+    // 🛫 UNLOCK LAUNCHPAD
     const startBtn = document.getElementById("start-btn");
     if (startBtn) {
         startBtn.innerText = "START FLIGHT 🛫";
@@ -87,9 +117,6 @@ Correct: A`;
     }
 }
 
-/**
- * Updates UI progress indicators
- */
 function updateProgressBar(count) {
     const progressFill = document.getElementById("flight-progress-fill");
     const progressText = document.getElementById("progress-text");
@@ -99,9 +126,6 @@ function updateProgressBar(count) {
     if (progressText) progressText.innerText = `Syncing with Gemini AI: ${percentage}%`;
 }
 
-/**
- * RegEx line-parser to break structural AI text returns into application objects
- */
 function parseRawTextToQuiz(rawText) {
     try {
         const cleanText = rawText.replace(/```json|```/g, "").trim();
@@ -128,9 +152,6 @@ function parseRawTextToQuiz(rawText) {
     }
 }
 
-/**
- * Triggers modal setup and updates inner option configurations
- */
 function useLoadedQuestion() {
     const quizModal = document.getElementById("quiz-modal");
     const questionText = document.getElementById("question-text");
@@ -155,15 +176,11 @@ function useLoadedQuestion() {
     if (quizModal) quizModal.classList.remove("hidden");
 }
 
-/**
- * Validates player feedback and branches mechanics accordingly
- */
 function verifyPlayerAnswer(selectedIndex, correctIndex) {
     const quizModal = document.getElementById("quiz-modal");
     if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
-        // Advance pointer index along cached stack
         currentQuestionIndex = (currentQuestionIndex + 1) % questionPool.length;
         if (typeof window.resumeGameAfterSave === "function") window.resumeGameAfterSave();
     } else {
@@ -171,7 +188,6 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     }
 }
 
-// Global scope hooks binding systems to core frame ticker
 window.questionPool = questionPool;
 window.useLoadedQuestion = useLoadedQuestion;
 
