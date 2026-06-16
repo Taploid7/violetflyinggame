@@ -1,12 +1,10 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 module.exports = async function handler(req, res) {
-  // 1. Set global CORS headers to allow GitHub Pages access
+  // 1. Force explicit CORS policies so GitHub Pages can read the response
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // 2. CRITICAL FIX: Handle browser security preflight check (OPTIONS request)
+  // 2. Handle Browser Preflight security checks immediately
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -17,22 +15,38 @@ module.exports = async function handler(req, res) {
 
   try {
     const { prompt } = req.body;
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: "Missing GEMINI_API_KEY environment variable on server." });
+    }
+
+    // 3. Direct Native API fetch request straight to Google's servers
+    const googleEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
-    // Force native JSON directly at the source
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: { 
-        responseMimeType: "application/json" 
-      }
+    const googleResponse = await fetch(googleEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
     });
+
+    if (!googleResponse.ok) {
+      const errorText = await googleResponse.text();
+      return res.status(googleResponse.status).json({ error: `Google API rejected request: ${errorText}` });
+    }
+
+    const data = await googleResponse.json();
     
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return res.status(200).json({ reply: response.text().trim() });
+    // Extract the text payload out of Google's native JSON tree structure
+    const aiResponseText = data.candidates[0].content.parts[0].text;
+
+    return res.status(200).json({ reply: aiResponseText.trim() });
 
   } catch (error) {
-    console.error("Vercel Execution Error:", error);
-    return res.status(500).json({ error: "Internal Server API Error" });
+    console.error("Internal Vercel System Crash:", error);
+    return res.status(500).json({ error: "Internal Server API Error", details: error.message });
   }
 };
