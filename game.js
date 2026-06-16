@@ -36,7 +36,8 @@ let violet = {
 
 // --- Obstacles Array Trackers ---
 let obstacles = [];
-const OBSTACLE_SPAWN_RATE = 110; 
+// ⏱️ Flying Time Calibration: 360 frames at 60fps = Exactly 6 seconds between obstacles!
+const OBSTACLE_SPAWN_RATE = 360; 
 let frameCount = 0;
 
 // =========================================================================
@@ -112,10 +113,14 @@ function initializeNewGame() {
 }
 
 function updateLiveHUD() {
+    // Target both common variations of score container IDs to ensure a visual update
     const scoreContainer = document.getElementById("score-container");
+    const scoreDisplay = document.getElementById("score");
     const heartsContainer = document.getElementById("hearts-container");
 
     if (scoreContainer) scoreContainer.innerText = `Score: ${score}`;
+    if (scoreDisplay) scoreDisplay.innerText = `Score: ${score}`;
+    
     if (heartsContainer) {
         heartsContainer.innerText = "❤️".repeat(Math.max(0, lives)) || "☠️";
     }
@@ -152,6 +157,7 @@ function updateGameObjects() {
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
 
+    // Spawn layout rules based on calibrated fly timing
     if (frameCount % OBSTACLE_SPAWN_RATE === 0) {
         const minHeight = 50;
         const maxHeight = 280;
@@ -184,7 +190,7 @@ function updateGameObjects() {
             obstacles[i].passed = true;
             if (obstacles[i].type === "top") {
                 score += 10;
-                updateLiveHUD();
+                updateLiveHUD(); // Visual display updates fired immediately here
 
                 if (score >= 100) {
                     triggerVictorySequence();
@@ -244,6 +250,8 @@ function triggerTurbulenceIntercept() {
 
 function resumeGameAfterSave() {
     isQuizActive = false;
+    // Reset frame counter upon question completion so player gets a fresh 6-second window 
+    frameCount = 0; 
     console.log("[Engine]: Quiz cleared. Resuming primary physics flight timeline updates.");
 }
 
