@@ -16,101 +16,106 @@ const MY_WORD_BANK = [
     "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
 ];
 
-// 🚀 EASY KID-FRIENDLY RECOVERY POOL
-const fallbackQuestions = [
-    { 
-        question: "What does the word 'Reassemble' mean?", 
-        options: ["To put pieces back together", "To break something completely", "To run super fast", "To clean up your room"], 
-        correct: 0 
-    },
-    { 
-        question: "What does the word 'Precision' mean?", 
-        options: ["Being perfectly exact and correct", "Moving around in a clumsy way", "A heavy truck or tractor", "Feeling totally lost"], 
-        correct: 0 
-    },
-    { 
-        question: "What does the word 'Hazards' mean?", 
-        options: ["Safe and clean places", "Dangerous things that can hurt you", "Tools used for digging dirt", "Fast toy airplanes"], 
-        correct: 1 
-    },
-    { 
-        question: "What does the word 'Altitude' mean?", 
-        options: ["How fast something can run", "How high up something is in the sky", "How much a gas tank weighs", "Which way the wind blows"], 
-        correct: 1 
-    }
-];
+// 📚 ELEMENTARY TAIWAN INTRODUCTORY ENGLISH LEVEL DICTIONARY
+const LOCAL_DICTIONARY = {
+    "Wrench": { definition: "A tool to turn and fix bolts", wrongs: ["A small bird", "A fast car", "A winter hat"] },
+    "Pliers": { definition: "A hand tool to hold things tight or cut wire", wrongs: ["A music player", "Running shoes", "A cooking pot"] },
+    "Appliances": { definition: "Machines used in the house, like a TV or fridge", wrongs: ["Forest animals", "Big mountains", "Story books"] },
+    "Reassemble": { definition: "To put pieces back together again", wrongs: ["To break something", "To paint a room", "To run away"] },
+    "Tinkering": { definition: "Fixing or playing with toys and machines", wrongs: ["Sleeping all day", "Eating a big dinner", "Shouting loudly"] },
+    "Lawn Mower": { definition: "A machine used to cut grass", wrongs: ["A swim tool", "A computer game", "A kitchen microwave"] },
+    "Engine": { definition: "The machine part that makes a car or plane move", wrongs: ["A notebook", "A soft blanket", "Fruit juice"] },
+    "Elaborate": { definition: "Beautiful with many small and careful details", wrongs: ["Plain and empty", "Very broken", "Super fast"] },
+    "Scratch": { definition: "To hurt the skin or a wall with fingernails or keys", wrongs: ["To sing a song", "To fly a kite", "To cook soup"] },
+    "Sweater": { definition: "Warm clothes you wear on your body when it is cold", wrongs: ["A big truck", "A school desk", "A noisy dog"] },
+    "Contraptions": { definition: "Strange or funny machines", wrongs: ["Fresh apples", "Wooden blocks", "White clouds"] },
+    "Engineering": { definition: "The work of building roads, bridges, and machines", wrongs: ["Drawing pictures", "Writing stories", "Playing basketball"] },
+    "Hazards": { definition: "Dangerous things that can hurt you", wrongs: ["Safe playgrounds", "Fun video games", "Soft pillows"] },
+    "Coveralls": { definition: "One piece of work clothes that covers the whole body", wrongs: ["Sunglasses", "Shiny shoes", "A king's crown"] },
+    "Obnoxious": { definition: "Very noisy, rude, and annoying", wrongs: ["Kind and sweet", "Quiet and nice", "Pretty and clean"] },
+    "Beamed": { definition: "Smiled with a very big and happy face", wrongs: ["Cried loudly", "Fell asleep", "Ran away safely"] },
+    "Frantically": { definition: "Doing something very fast because you are scared or worried", wrongs: ["Moving very slowly", "Sleeping deeply", "Eating a snack"] },
+    "Altitude": { definition: "How high something is in the sky", wrongs: ["How fast a plane is", "How heavy a bag is", "The color of the sky"] },
+    "Canoeing": { definition: "Rowing a small, long boat in the water", wrongs: ["Flying a plane", "Riding a bicycle", "Skiing on snow"] },
+    "Precision": { definition: "Being completely correct, exact, and careful", wrongs: ["Clumsy falling", "Feeling lost", "A heavy truck"] },
+    "Grateful": { definition: "Feeling happy and saying 'thank you' for help", wrongs: ["Very angry", "Bored and sad", "Rude and mean"] },
+    "Miserable": { definition: "Very, very sad and unhappy", wrongs: ["Happy and glad", "Strong and big", "Fast and active"] },
+    "Appetite": { definition: "Feeling hungry and wanting to eat food", wrongs: ["A bike tool", "A winter storm", "Being very tired"] },
+    "Jubilantly": { definition: "Cheering and shouting with great joy", wrongs: ["Very sadly", "Quietly and softly", "With an angry face"] },
+    "Valor": { definition: "Great bravery when things are scary", wrongs: ["Being lazy", "Being scared", "Telling funny jokes"] },
+    "Esteem": { definition: "Respecting and liking someone because they are good", wrongs: ["Hating someone", "Heavy exercise", "Forgetting names"] }
+};
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function preloadAllQuestions() {
-    console.log(`[Terminal Log]: Starting paced preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
+    console.log(`[Terminal Log]: Starting bulletproof preloading sequence...`);
     const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
     for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
         const targetWord = shuffledWords[i % shuffledWords.length];
-        let success = false;
-        let attempts = 0;
+        let loadedQuizObject = null;
 
-        // 🚀 PACING DELAY: Prevents slamming the serverless functions simultaneously
-        await delay(300);
+        await delay(1800);
 
-        while (!success && attempts < 2) {
-            try {
-                const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${targetWord}".
-Format your entire response exactly like this example layout text and do not include markdown blocks, json tags, symbols, or extra characters:
+        try {
+            const systemPrompt = `Generate one unique English vocabulary multiple-choice question for the word: "${targetWord}".
+Keep the English level extremely simple, suitable for elementary school ESL kids in Taiwan. Use short words and basic sentences.
+Format your entire response exactly like this example layout text:
 Question: What does the word "Diligent" mean?
-A) Hard-working and careful
+A) Working hard and carefully
 B) Lazy and slow
 C) Angry and loud
 D) Small and fast
 Correct: A`;
 
-                const controller = new AbortController();
-                // 🔥 ENHANCED: Raised timeout to 12 seconds to support multiple waterfall hops
-                const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-                const response = await fetch(VERCEL_BACKEND_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: systemPrompt }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) throw new Error(`HTTP Status ${response.status}`);
-                const data = await response.json();
-                if (!data.reply) throw new Error("Empty text block payload.");
-
-                const parsedQuestion = parseRawTextToQuiz(data.reply);
-                if (parsedQuestion) {
-                    questionPool.push(parsedQuestion);
-                    success = true;
-                    console.log(`[Preloader]: Cached question for "${targetWord}" via Gemini.`);
-                } else {
-                    throw new Error("Text structural parse divergence error.");
-                }
-            } catch (error) {
-                console.warn(`[Preloader Warning]: Fetch failure for "${targetWord}" (Attempt ${attempts + 1}): ${error.message}`);
-                attempts++;
-                if (attempts < 2) await delay(500);
-            }
-        }
-
-        // 🚀 FALLBACK RECOVERY: Keeps the progress bar moving even if network errors happen
-        if (!success) {
-            console.log(`[Preloader]: Injecting local fallback question asset for "${targetWord}".`);
-            const fallbackItem = fallbackQuestions[i % fallbackQuestions.length];
-            questionPool.push({
-                ...fallbackItem,
-                question: `What does the word "${targetWord}" mean?`
+            const response = await fetch(VERCEL_BACKEND_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: systemPrompt }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.reply) {
+                    loadedQuizObject = parseRawTextToQuiz(data.reply);
+                }
+            }
+        } catch (networkOrParseError) {
+            console.warn(`[Preloader Non-Fatal]: API path bypassed for "${targetWord}": ${networkOrParseError.message}`);
         }
 
+        if (!loadedQuizObject) {
+            console.log(`[Preloader Safety]: Auto-generating local elementary question asset for "${targetWord}"`);
+            const wordData = LOCAL_DICTIONARY[targetWord] || { 
+                definition: "To study and learn English words", 
+                wrongs: ["To jump up high", "To run backward", "To sleep now"] 
+            };
+            
+            const optionsList = [wordData.definition, ...wordData.wrongs];
+            const originalDefinition = wordData.definition;
+            
+            const shuffledOptions = [...optionsList].sort(() => 0.5 - Math.random());
+            const correctIndex = shuffledOptions.indexOf(originalDefinition);
+
+            loadedQuizObject = {
+                word: targetWord, // Added tracking word label parameter context
+                question: `What does the word "${targetWord}" mean?`,
+                options: shuffledOptions,
+                correct: correctIndex
+            };
+        }
+
+        questionPool.push(loadedQuizObject);
         updateProgressBar(questionPool.length);
     }
 
-    // 🛫 UNLOCK LAUNCHPAD
     const startBtn = document.getElementById("start-btn");
     if (startBtn) {
         startBtn.innerText = "START FLIGHT 🛫";
@@ -141,7 +146,11 @@ function parseRawTextToQuiz(rawText) {
             const choices = [optAMatch[1].trim(), optBMatch[1].trim(), optCMatch[1].trim(), optDMatch[1].trim()];
             const letterMapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
             
+            // Extract the word inside quotes from the generated question
+            const wordExtract = questionMatch[1].match(/"([^"]+)"/) || [null, "Vocabulary"];
+
             return {
+                word: wordExtract[1],
                 question: questionMatch[1].trim(),
                 options: choices,
                 correct: letterMapping[correctMatch[1].toUpperCase()]
@@ -159,10 +168,41 @@ function useLoadedQuestion() {
     const optionsContainer = document.getElementById("options-container");
 
     let currentQuestion = questionPool[currentQuestionIndex];
+    
+    // 🧠 DYNAMIC SAFETY STEP: If the pool question is missing or broken,
+    // construct the choices matching the requested word from the local dictionary
     if (!currentQuestion) {
-        currentQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+        // Pick a random word from the bank as an absolute backup
+        const randomWord = MY_WORD_BANK[Math.floor(Math.random() * MY_WORD_BANK.length)];
+        const wordData = LOCAL_DICTIONARY[randomWord];
+        const shuffledOptions = [wordData.definition, ...wordData.wrongs].sort(() => 0.5 - Math.random());
+        
+        currentQuestion = {
+            word: randomWord,
+            question: `What does the word "${randomWord}" mean?`,
+            options: shuffledOptions,
+            correct: shuffledOptions.indexOf(wordData.definition)
+        };
     }
 
+    // Double-check alignment: if Gemini created choices but completely missed the meaning context
+    // replace it safely with the verified local introductory definition choices
+    const wordKey = currentQuestion.word;
+    if (LOCAL_DICTIONARY[wordKey]) {
+        const correctDef = LOCAL_DICTIONARY[wordKey].definition;
+        const hasCorrectOption = currentQuestion.options.some(opt => opt.toLowerCase().includes(correctDef.toLowerCase()) || correctDef.toLowerCase().includes(opt.toLowerCase()));
+        
+        if (!hasCorrectOption) {
+            console.warn(`[Quiz Alignment Sync]: API layout lacked matching true option for "${wordKey}". Rebuilding answers dynamically.`);
+            const wordData = LOCAL_DICTIONARY[wordKey];
+            const rebuiltOptions = [wordData.definition, ...wordData.wrongs].sort(() => 0.5 - Math.random());
+            
+            currentQuestion.options = rebuiltOptions;
+            currentQuestion.correct = rebuiltOptions.indexOf(wordData.definition);
+        }
+    }
+
+    // Render cleanly to your layout view interface
     questionText.innerText = currentQuestion.question;
     optionsContainer.innerHTML = "";
 
@@ -182,7 +222,7 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
-        currentQuestionIndex = (currentQuestionIndex + 1) % questionPool.length;
+        currentQuestionIndex = (currentQuestionIndex + 1) % (questionPool.length || 1);
         if (typeof window.resumeGameAfterSave === "function") window.resumeGameAfterSave();
     } else {
         if (typeof window.deductHeart === "function") window.deductHeart();
