@@ -3,7 +3,6 @@ const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 let nextQuestionCache = null;
 let isFetchingQuestion = false;
 
-// 1. YOUR CUSTOM VOCABULARY WORD BANK
 const MY_WORD_BANK = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
     "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
@@ -12,7 +11,6 @@ const MY_WORD_BANK = [
     "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
 ];
 
-// Safe local fallback generator if the network layers drop out entirely
 const fallbackQuestions = [
     { question: "What does the word 'Reassemble' mean?", options: ["To put pieces back together", "To break apart completely", "To move very quickly", "To clear out space"], correct: 0 },
     { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 }
@@ -21,13 +19,12 @@ const fallbackQuestions = [
 async function prefetchNextQuestion() {
     if (isFetchingQuestion || nextQuestionCache) return;
     isFetchingQuestion = true;
-    updateDebugTerminal("⏳ Requesting Gemini AI question...", "yellow");
+    console.log("[Terminal Log]: ⏳ Requesting Gemini AI question...");
 
-    // Pick a random target word from your specific list
     const randomTargetWord = MY_WORD_BANK[Math.floor(Math.random() * MY_WORD_BANK.length)];
 
     const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${randomTargetWord}".
-Format your entire response exactly like this example text and do not include markdown blocks, symbols, or extra characters:
+Format your entire response exactly like this example layout text and do not include markdown blocks, symbols, or extra characters:
 Question: What does the word "Diligent" mean?
 A) Hard-working and careful
 B) Lazy and slow
@@ -42,7 +39,21 @@ Correct: A`;
             body: JSON.stringify({ prompt: systemPrompt })
         });
 
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        // 🚨 CRITICAL TROUBLESHOOTING UPGRADE:
+        // If the server returns an error code (like 500), parse the JSON payload to reveal the inner debug details!
+        if (!response.ok) {
+            let errorDetails = "Could not parse server error message.";
+            try {
+                const errorData = await response.json();
+                console.error("⛔ [DETAILED BACKEND CRASH REPORT]:", errorData);
+                errorDetails = JSON.stringify(errorData, null, 2);
+            } catch (e) {
+                const rawText = await response.text();
+                console.error("⛔ [RAW BACKEND HTML/TEXT ERROR]:", rawText);
+                errorDetails = rawText;
+            }
+            throw new Error(`HTTP Error Status: ${response.status}\nDetails:\n${errorDetails}`);
+        }
         
         const data = await response.json();
         if (!data.reply) throw new Error("Empty payload from server template.");
@@ -50,13 +61,13 @@ Correct: A`;
         const cleanParsedQuestion = parseRawTextToQuiz(data.reply);
         if (cleanParsedQuestion) {
             nextQuestionCache = cleanParsedQuestion;
-            updateDebugTerminal(`✅ Gemini AI question pre-loaded for: ${randomTargetWord}`, "green");
+            console.log(`[Terminal Log]: ✅ Gemini AI question pre-loaded for: ${randomTargetWord}`);
         } else {
+            console.warn("⚠️ Received raw text could not be processed by parser regular expressions:", data.reply);
             throw new Error("Text parsing schema structural mismatch.");
         }
     } catch (error) {
-        console.error("AI Error:", error);
-        updateDebugTerminal(`❌ AI Fetch FAILED! Using Fallback. Error: ${error.message}`, "red");
+        console.error("❌ AI Fetch Layer FAILED! Details:", error.message);
         nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
     } finally {
         isFetchingQuestion = false;
@@ -67,7 +78,6 @@ function parseRawTextToQuiz(rawText) {
     try {
         const cleanText = rawText.replace(/```json|```/g, "").trim();
         
-        // Flexible regex matching to handle unexpected variations in whitespace/capitalization
         const questionMatch = cleanText.match(/(?:Question|Q):\s*(.*)/i);
         const optAMatch = cleanText.match(/[A]\)?\s+(.*)/i);
         const optBMatch = cleanText.match(/[B]\)?\s+(.*)/i);
@@ -86,7 +96,6 @@ function parseRawTextToQuiz(rawText) {
             };
         }
         
-        // Secondary parser: Split line by line if Regex matching fails
         const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length >= 6) {
             const question = lines[0].replace(/^(Question:\s*|Q:\s*)/i, "");
@@ -146,19 +155,12 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
-        updateDebugTerminal("✨ Correct answer! Resuming flight.", "green");
         if (typeof resumeFlight === "function") resumeFlight();
     } else {
-        updateDebugTerminal("💥 Wrong answer! Damage sustained.", "red");
         if (typeof applyDamage === "function") applyDamage();
     }
 }
 
-function updateDebugTerminal(message, color) {
-    console.log(`[Terminal Log]: ${message}`);
-}
-
-// 2. CRITICAL FIX: Explicitly expose functions to the global window context
 window.prefetchNextQuestion = prefetchNextQuestion;
 window.useLoadedQuestion = useLoadedQuestion;
 
