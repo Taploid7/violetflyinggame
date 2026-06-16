@@ -3,57 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Violet the Pilot</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+    <title>Violet the Pilot - Vocabulary Flight Academy</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-        <div id="ui-layer" class="hidden">
+        <div id="ui-layer">
             <div id="score-container">Score: 0</div>
             <div id="hearts-container">❤️❤️❤️</div>
         </div>
 
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+
         <div id="start-screen">
             <h1>VIOLET THE PILOT</h1>
-            <p>Help Violet navigate Taiwan safely! Press Spacebar to lift altitude.</p>
-            <p><strong>Target Goal: Clear missions successfully to reach 200 points!</strong></p>
+            <p>Help Violet steer clear of obstacles by mastering your vocabulary!</p>
             
-            <button id="start-btn" onclick="startGameNow()" disabled>Preloading AI Flight Plan... ⏳</button>
-
             <div class="preloader-box">
-                <div id="progress-text">Syncing with Gemini AI: 0%</div>
+                <span id="progress-text">Syncing with Gemini AI: 0%</span>
                 <div class="bar-bg">
                     <div id="flight-progress-fill" class="bar-fill"></div>
                 </div>
             </div>
+
+            <button id="start-btn" disabled>PRELOADING SQUADRON... ⏳</button>
         </div>
 
         <div id="quiz-modal" class="hidden">
             <div class="modal-content">
-                <h2>⚠️ FLIGHT DECK INTERCEPT!</h2>
-                <p id="question-text">Analyzing atmospheric data pool...</p>
+                <h2>⚠️ TURBULENCE DETECTED!</h2>
+                <p id="question-text">Loading emergency flight query...</p>
                 <div id="options-container">
                     </div>
             </div>
         </div>
 
         <div id="game-over-screen" class="hidden">
-            <h1>CRASH LANDING</h1>
-            <p id="final-score">Flight systems offline.</p>
-            <button id="restart-btn" onclick="resetGame()">FLY AGAIN 🔄</button>
+            <h1>CRASH LANDING!</h1>
+            <p id="final-score">Your Score: 0</p>
+            <button id="restart-btn">FLY AGAIN 🔄</button>
         </div>
 
         <div id="victory-screen" class="hidden">
             <div class="victory-content">
-                <div class="trophy">🏆</div>
-                <h1>MISSION COMPLETE!</h1>
-                <p>Violet successfully explored Taiwan!</p>
-                <button id="win-restart-btn" onclick="resetGame()">PLAY AGAIN 🔄</button>
+                <span class="trophy">🏆</span>
+                <h1>ACE PILOT!</h1>
+                <p>Incredible! You cleared all vocabulary tracks safely!</p>
+                <button id="win-restart-btn">NEXT MISSION 🛫</button>
             </div>
             <div class="confetti-container">
                 <div class="confetti"></div>
