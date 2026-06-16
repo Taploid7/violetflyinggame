@@ -14,8 +14,11 @@ let isPrefetching = false;
 
 function cleanAndParseJSON(rawText) {
     let cleanText = rawText.trim();
-    if (cleanText.includes("```json")) cleanText = cleanText.split("```json")[1].split("```")[0];
-    else if (cleanText.includes("```")) cleanText = cleanText.split("```")[1].split("```")[0];
+    if (cleanText.includes("```json")) {
+        cleanText = cleanText.split("```json")[1].split("```")[0];
+    } else if (cleanText.includes("```")) {
+        cleanText = cleanText.split("```")[1].split("```")[0];
+    }
     
     const firstBracket = cleanText.indexOf("{");
     const lastBracket = cleanText.lastIndexOf("}");
@@ -26,7 +29,7 @@ function cleanAndParseJSON(rawText) {
 }
 
 async function prefetchNextQuestion() {
-    if (isPrefetching) return;
+    if (isPrefetching) return false;
     isPrefetching = true;
     
     if (window.logDebug) window.logDebug("⏳ Requesting Gemini AI question...");
@@ -58,11 +61,13 @@ async function prefetchNextQuestion() {
 
         cachedQuizData = quizData; 
         if (window.logDebug) window.logDebug("✅ Gemini API fully loaded!");
+        return true;
         
     } catch (error) {
         if (window.logDebug) window.logDebug("❌ AI Fetch FAILED! Using Fallback. Error: " + error.message);
         console.error("AI Error:", error);
         cachedQuizData = generateFallbackPayload(randomWord);
+        return true; // Return true so fallback lets game unlock
     } finally {
         isPrefetching = false;
     }
@@ -93,7 +98,7 @@ function useLoadedQuestion() {
     });
 
     cachedQuizData = null;
-    prefetchNextQuestion(); // Start loading the next one immediately
+    prefetchNextQuestion(); 
 }
 
 function generateFallbackPayload(word) {
@@ -107,7 +112,7 @@ function generateFallbackPayload(word) {
     items.sort(() => Math.random() - 0.5);
     
     return {
-        question: `[FALLBACK] What does "${word}" mean?`,
+        question: `What does the vocabulary word "${word}" mean?`,
         options: items.map(i => i.text),
         correctIndex: items.findIndex(i => i.original)
     };
