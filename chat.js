@@ -1,7 +1,5 @@
-// Your actual Vercel deployment URL with the safe api path appended
 const VERCEL_BACKEND_URL = "https://game1-shfe-git-main-taploid7s-projects.vercel.app/api/chat";
 
-// Vocabulary list from your textbook selection
 const vocabularyWords = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", "Lawn Mower", 
     "Engine", "Elaborate", "Scratch", "Sweater", "Contraptions", "Engineering", 
@@ -12,18 +10,13 @@ const vocabularyWords = [
 
 let currentCorrectIndex = 0;
 
-/**
- * Triggered by game.js when Violet hits a boundary.
- * Selects a random textbook word and handles the networking request.
- */
 async function fetchAIQuestion() {
-    // Pick a random word from the book list
     const randomWord = vocabularyWords[Math.floor(Math.random() * vocabularyWords.length)];
     const questionTextElement = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
 
     questionTextElement.innerText = "Connecting to air traffic control AI...";
-    optionsContainer.innerHTML = ""; // Clear out previous buttons
+    optionsContainer.innerHTML = ""; 
 
     const promptText = `You are an ESL English teacher for lower-school elementary students in Taiwan. 
     Create a very simple, 1-sentence multiple choice question testing the vocabulary word: "${randomWord}".
@@ -47,8 +40,6 @@ async function fetchAIQuestion() {
         if (!response.ok) throw new Error("Server network error");
 
         const data = await response.json();
-        
-        // Parse out the JSON string safely depending on your backend key design
         const rawPayload = data.reply || data.text;
         const quizData = typeof rawPayload === "string" ? JSON.parse(rawPayload) : rawPayload;
         
@@ -60,31 +51,23 @@ async function fetchAIQuestion() {
     }
 }
 
-/**
- * Builds the text and layout buttons dynamically in the HTML overlay card
- */
 function displayAIQuestion(quizData) {
     const questionTextElement = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
     
     questionTextElement.innerText = quizData.question;
-    optionsContainer.innerHTML = ""; // Clear loading screen message
+    optionsContainer.innerHTML = ""; 
     currentCorrectIndex = quizData.correctIndex;
 
     quizData.options.forEach((optionText, index) => {
         const button = document.createElement("button");
         button.className = "option-btn";
         button.innerText = optionText;
-        
-        // Attach click validation handle to each button item
         button.onclick = () => checkAnswer(index, currentCorrectIndex);
         optionsContainer.appendChild(button);
     });
 }
 
-/**
- * Complete offline backup generator to keep the game loops running if API limits expire
- */
 function fallbackQuestion(word) {
     const mockData = {
         question: `What does the book vocabulary word "${word}" mean?`,
@@ -99,16 +82,11 @@ function fallbackQuestion(word) {
     displayAIQuestion(mockData);
 }
 
-/**
- * Processes selection indices and coordinates reaction states back to game.js
- */
 function checkAnswer(selectedIndex, correctIndex) {
     if (selectedIndex === correctIndex) {
-        alert("Correct choice! Back to the skies! 🎉");
         document.getElementById("quiz-modal").classList.add("hidden");
-        resumeGameAfterSave(); // Tells game.js to unfreeze the movement loop
+        resumeGameAfterSave(); 
     } else {
-        alert("Incorrect definition! Lost 1 heart. 💔");
-        deductHeart(); // Tells game.js to subtract a heart profile point
+        deductHeart(); 
     }
 }
