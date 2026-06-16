@@ -1,7 +1,7 @@
 body {
     margin: 0;
     padding: 0;
-    background-color: #2c3e50;
+    background-color: #1a252f;
     font-family: 'Fredoka', 'Arial', sans-serif;
     font-weight: 500;
     display: flex;
@@ -15,26 +15,28 @@ body {
     position: relative;
     width: 800px;
     height: 500px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    background-color: #70c5ce;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    border-radius: 16px;
+    background-color: #3b5998;
     overflow: hidden;
 }
 
 canvas {
     display: block;
+    border-radius: 16px;
 }
 
 #ui-layer {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    right: 20px;
+    top: 25px;
+    left: 25px;
+    right: 25px;
     display: flex;
     justify-content: space-between;
-    font-size: 24px;
+    font-size: 26px;
     font-weight: bold;
     color: white;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
     pointer-events: none;
     z-index: 5;
 }
@@ -49,66 +51,72 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(44, 62, 80, 0.95);
     z-index: 10;
     text-align: center;
+    box-sizing: border-box;
 }
 
-#start-screen, #game-over-screen {
+#start-screen {
+    background: linear-gradient(135deg, #2980b9, #6dd5fa, #ffffff);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: #1a252f;
 }
 
-#quiz-modal {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(44, 62, 80, 0.85);
-}
-
-#start-screen h1, #game-over-screen h1 {
+#start-screen h1 {
     font-family: 'Fredoka', sans-serif;
     font-weight: 700;
-    font-size: 52px;
-    color: #f1c40f;
-    margin-bottom: 10px;
+    font-size: 56px;
+    color: #ffffff;
+    margin: 0 0 15px 0;
+    text-shadow: 3px 3px 0px #2980b9;
 }
 
 #start-screen p {
     font-size: 18px;
-    margin: 5px 0;
+    margin: 6px 0;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+#quiz-modal {
+    background-color: rgba(28, 40, 51, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
-    background: white;
-    color: #333;
-    padding: 30px;
-    border-radius: 15px;
-    max-width: 600px;
+    background: #ffffff;
+    color: #2c3e50;
+    padding: 35px;
+    border-radius: 24px;
+    max-width: 550px;
     width: 85%;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.4);
-    margin: auto;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    transform: scale(1);
+    transition: transform 0.3s ease;
 }
 
 .modal-content h2 {
     color: #e74c3c;
+    font-size: 28px;
     margin-top: 0;
 }
 
 #question-text {
-    font-size: 20px;
-    font-weight: bold;
-    margin: 20px 0;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 25px 0;
+    line-height: 1.4;
 }
 
 #options-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 14px;
 }
 
 .option-btn {
@@ -117,38 +125,58 @@ canvas {
     background-color: #3498db;
     color: white;
     border: none;
-    padding: 15px;
-    border-radius: 8px;
+    padding: 16px;
+    border-radius: 14px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background 0.2s;
+    font-size: 18px;
+    box-shadow: 0 4px 0px #2980b9;
+    transition: all 0.1s ease;
 }
 
 .option-btn:hover {
     background-color: #2980b9;
+    transform: translateY(2px);
+    box-shadow: 0 2px 0px #1a252f;
+}
+
+#game-over-screen {
+    background: linear-gradient(135deg, #2c3e50, #1a252f);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+#game-over-screen h1 {
+    font-size: 56px;
+    color: #c0392b;
+    text-shadow: 3px 3px 0px #7f8c8d;
+    margin: 0 0 10px 0;
 }
 
 #start-btn, #restart-btn {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
-    padding: 15px 40px;
-    font-size: 22px;
+    padding: 16px 45px;
+    font-size: 24px;
     background-color: #2ecc71;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 14px;
     cursor: pointer;
-    margin-top: 25px;
-    transition: transform 0.2s;
+    margin-top: 30px;
+    box-shadow: 0 5px 0px #27ae60;
 }
 
 #start-btn:hover, #restart-btn:hover {
     background-color: #27ae60;
-    transform: scale(1.05);
+    transform: translateY(2px);
+    box-shadow: 0 3px 0px #1e8449;
 }
 
 #victory-screen {
-    background-color: rgba(46, 204, 113, 0.95);
+    background: linear-gradient(135deg, #11998e, #38ef7d);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -163,47 +191,47 @@ canvas {
 }
 
 .trophy {
-    font-size: 90px;
-    margin-bottom: 10px;
+    font-size: 100px;
+    margin-bottom: 5px;
     animation: bounce 1s infinite alternate ease-in-out;
 }
 
 @keyframes bounce {
     0% { transform: translateY(0) scale(1); }
-    100% { transform: translateY(-20px) scale(1.1); }
+    100% { transform: translateY(-15px) scale(1.05); }
 }
 
 .victory-content h1 {
     font-family: 'Fredoka', sans-serif;
-    font-size: 64px;
+    font-size: 68px;
     color: #f1c40f;
     margin: 0;
     text-shadow: 3px 3px 0px #d35400;
 }
 
 .victory-content p {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 600;
 }
 
 #win-restart-btn {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
-    padding: 15px 40px;
-    font-size: 22px;
+    padding: 15px 45px;
+    font-size: 24px;
     background-color: #f1c40f;
-    color: #333;
+    color: #2c3e50;
     border: none;
-    border-radius: 10px;
+    border-radius: 14px;
     cursor: pointer;
     margin-top: 25px;
-    transition: transform 0.2s;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 0px #f39c12;
 }
 
 #win-restart-btn:hover {
-    transform: scale(1.05);
     background-color: #f39c12;
+    transform: translateY(2px);
+    box-shadow: 0 3px 0px #d35400;
 }
 
 .confetti-container {
@@ -216,9 +244,8 @@ canvas {
 }
 
 .confetti {
-    width: 15px;
-    height: 15px;
-    background-color: #e74c3c;
+    width: 16px;
+    height: 16px;
     position: absolute;
     animation: fall 3s infinite linear;
 }
@@ -227,7 +254,7 @@ canvas {
 .confetti:nth-child(2) { left: 40%; background-color: #9b59b6; animation-delay: 1.2s; }
 .confetti:nth-child(3) { left: 60%; background-color: #f1c40f; animation-delay: 0.5s; }
 .confetti:nth-child(4) { left: 80%; background-color: #e67e22; animation-delay: 2s; }
-.confetti:nth-child(5) { left: 10%; background-color: #ecf0f1; animation-delay: 2.5s; }
+.confetti:nth-child(5) { left: 10%; background-color: #e74c3c; animation-delay: 2.5s; }
 
 @keyframes fall {
     0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }

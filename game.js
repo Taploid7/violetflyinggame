@@ -1,7 +1,11 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
 const violetSprite = new Image();
 violetSprite.src = "assets/violet.png"; 
+
+const bgImage = new Image();
+bgImage.src = "assets/background.png";
 
 let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.04, velocity: 0 };
 let score = 0, lives = 3;
@@ -10,7 +14,7 @@ let isGameActive = false;
 let isPausedForQuiz = false;
 let hasWon = false;
 
-let bgX = 0, bgSpeed = 2, jitterTimer = 0;
+let bgX = 0, bgSpeed = 1.5, jitterTimer = 0;
 
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz && isGameStarted) {
@@ -46,7 +50,7 @@ function update() {
     bgX -= bgSpeed;
     if (bgX <= -canvas.width) bgX = 0;
     
-    if (violet.y + violet.height >= canvas.height - 10 || violet.y <= 10) {
+    if (violet.y + violet.height >= canvas.height - 30 || violet.y <= 10) {
         triggerDippedQuizEvent();
     }
     
@@ -62,12 +66,15 @@ function update() {
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = "#2c3e50"; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = "#34495e";
-    ctx.fillRect(bgX, 470, canvas.width, 30);
-    ctx.fillRect(bgX + canvas.width, 470, canvas.width, 30);
+    if (bgImage.complete && bgImage.naturalWidth !== 0) {
+        ctx.drawImage(bgImage, bgX, 0, canvas.width, canvas.height);
+        ctx.drawImage(bgImage, bgX + canvas.width, 0, canvas.width, canvas.height);
+    } else {
+        ctx.fillStyle = "#3b5998"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#2c3e50";
+        ctx.fillRect(0, 470, canvas.width, 30);
+    }
 
     let offset = (isGameActive && !isPausedForQuiz && isGameStarted) ? Math.sin(jitterTimer) * 1.5 : 0;
     
@@ -88,9 +95,9 @@ function gameLoop() {
 function triggerDippedQuizEvent() {
     isPausedForQuiz = true;
     if (violet.y > 250) {
-        violet.y = canvas.height - violet.height - 10;
+        violet.y = canvas.height - violet.height - 35;
     } else {
-        violet.y = 11;
+        violet.y = 15;
     }
     violet.velocity = 0;
     document.getElementById("quiz-modal").classList.remove("hidden");
