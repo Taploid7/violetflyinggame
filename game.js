@@ -1,299 +1,219 @@
 // =========================================================================
-// 🎮 VIOLET THE PILOT - CORE PHYSICS ENGINE & LAYOUT ENGINE CONTEXT
+// 🧠 VIOLET THE PILOT - BACKEND AI PRELOADER & INTERCEPT MANAGEMENT SYSTEM
 // =========================================================================
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
-// --- Game State Tracking ---
-let isGameRunning = false;
-let isQuizActive = false;
-let score = 0;
-let lives = 3;
-let animationFrameId = null;
+let questionPool = [];
+const TOTAL_QUESTIONS_NEEDED = 10;
+let currentQuestionIndex = 0;
 
-// --- 🖼️ CUSTOM GAME ASSETS ---
-const violetImage = new Image();
-violetImage.src = 'assets/violet.png'; // Your custom Violet asset path
+const MY_WORD_BANK = [
+    "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
+    "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
+    "Contraptions", "Engineering", "Hazards", "Coveralls", "Obnoxious", 
+    "Beamed", "Frantically", "Altitude", "Canoeing", "Precision", 
+    "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
+];
 
-const backgroundImage = new Image();
-backgroundImage.src = 'assets/background.png'; // Your custom parallax scrolling background asset path
-
-// --- Parallax Background Tracker ---
-let backgroundX = 0;
-const BACKGROUND_SPEED = 2; // Exact speed of your moving background track
-
-// --- Pilot Physics Entities ---
-let violet = {
-    x: 100,
-    y: 200,
-    width: 65,   // Dimension adjustment matching your standard sprite proportions
-    height: 50,  // Dimension adjustment matching your standard sprite proportions
-    gravity: 0.35,
-    lift: -6.5,
-    velocity: 0
+// 📚 ELEMENTARY TAIWAN INTRODUCTORY ENGLISH LEVEL DICTIONARY
+const LOCAL_DICTIONARY = {
+    "Wrench": { definition: "A tool to turn and fix bolts", wrongs: ["A small bird", "A fast car", "A winter hat"] },
+    "Pliers": { definition: "A hand tool to hold things tight or cut wire", wrongs: ["A music player", "Running shoes", "A cooking pot"] },
+    "Appliances": { definition: "Machines used in the house, like a TV or fridge", wrongs: ["Forest animals", "Big mountains", "Story books"] },
+    "Reassemble": { definition: "To put pieces back together again", wrongs: ["To break something", "To paint a room", "To run away"] },
+    "Tinkering": { definition: "Fixing or playing with toys and machines", wrongs: ["Sleeping all day", "Eating a big dinner", "Shouting loudly"] },
+    "Lawn Mower": { definition: "A machine used to cut grass", wrongs: ["A swim tool", "A computer game", "A kitchen microwave"] },
+    "Engine": { definition: "The machine part that makes a car or plane move", wrongs: ["A notebook", "A soft blanket", "Fruit juice"] },
+    "Elaborate": { definition: "Beautiful with many small and careful details", wrongs: ["Plain and empty", "Very broken", "Super fast"] },
+    "Scratch": { definition: "To hurt the skin or a wall with fingernails or keys", wrongs: ["To sing a song", "To fly a kite", "To cook soup"] },
+    "Sweater": { definition: "Warm clothes you wear on your body when it is cold", wrongs: ["A big truck", "A school desk", "A noisy dog"] },
+    "Contraptions": { definition: "Strange or funny machines", wrongs: ["Fresh apples", "Wooden blocks", "White clouds"] },
+    "Engineering": { definition: "The work of building roads, bridges, and machines", wrongs: ["Drawing pictures", "Writing stories", "Playing basketball"] },
+    "Hazards": { definition: "Dangerous things that can hurt you", wrongs: ["Safe playgrounds", "Fun video games", "Soft pillows"] },
+    "Coveralls": { definition: "One piece of work clothes that covers the whole body", wrongs: ["Sunglasses", "Shiny shoes", "A king's crown"] },
+    "Obnoxious": { definition: "Very noisy, rude, and annoying", wrongs: ["Kind and sweet", "Quiet and nice", "Pretty and clean"] },
+    "Beamed": { definition: "Smiled with a very big and happy face", wrongs: ["Cried loudly", "Fell asleep", "Ran away safely"] },
+    "Frantically": { definition: "Doing something very fast because you are scared or worried", wrongs: ["Moving very slowly", "Sleeping deeply", "Eating a snack"] },
+    "Altitude": { definition: "How high something is in the sky", wrongs: ["How fast a plane is", "How heavy a bag is", "The color of the sky"] },
+    "Canoeing": { definition: "Rowing a small, long boat in the water", wrongs: ["Flying a plane", "Riding a bicycle", "Skiing on snow"] },
+    "Precision": { definition: "Being completely correct, exact, and careful", wrongs: ["Clumsy falling", "Feeling lost", "A heavy truck"] },
+    "Grateful": { definition: "Feeling happy and saying 'thank you' for help", wrongs: ["Very angry", "Bored and sad", "Rude and mean"] },
+    "Miserable": { definition: "Very, very sad and unhappy", wrongs: ["Happy and glad", "Strong and big", "Fast and active"] },
+    "Appetite": { definition: "Feeling hungry and wanting to eat food", wrongs: ["A bike tool", "A winter storm", "Being very tired"] },
+    "Jubilantly": { definition: "Cheering and shouting with great joy", wrongs: ["Very sadly", "Quietly and softly", "With an angry face"] },
+    "Valor": { definition: "Great bravery when things are scary", wrongs: ["Being lazy", "Being scared", "Telling funny jokes"] },
+    "Esteem": { definition: "Respecting and liking someone because they are good", wrongs: ["Hating someone", "Heavy exercise", "Forgetting names"] }
 };
 
-// --- Obstacles Array Trackers ---
-let obstacles = [];
-const OBSTACLE_SPAWN_RATE = 110; // Frames between obstacles
-let frameCount = 0;
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// =========================================================================
-// 🚀 INJECT INTERACTIVE CLICK EVENT HANDLERS (Fixes Unclickable Button)
-// =========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-    const startBtn = document.getElementById("start-btn");
-    const restartBtn = document.getElementById("restart-btn");
-    const winRestartBtn = document.getElementById("win-restart-btn");
+async function preloadAllQuestions() {
+    console.log(`[Terminal Log]: Starting paced preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
+    const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
-    if (startBtn) {
-        startBtn.onclick = () => {
-            console.log("[Engine]: Launching game instance...");
-            initializeNewGame();
-        };
-    }
+    for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
+        const targetWord = shuffledWords[i % shuffledWords.length];
+        let success = false;
+        let attempts = 0;
 
-    if (restartBtn) {
-        restartBtn.onclick = () => {
-            initializeNewGame();
-        };
-    }
+        await delay(2000);
 
-    if (winRestartBtn) {
-        winRestartBtn.onclick = () => {
-            initializeNewGame();
-        };
-    }
+        while (!success && attempts < 2) {
+            try {
+                const systemPrompt = `Generate one unique English vocabulary multiple-choice question for the word: "${targetWord}".
+Keep the English level extremely simple, suitable for elementary school ESL kids in Taiwan. Use short words and basic sentences.
+Format your entire response exactly like this example layout text:
+Question: What does the word "Diligent" mean?
+A) Working hard and carefully
+B) Lazy and slow
+C) Angry and loud
+D) Small and fast
+Correct: A`;
 
-    // Capture Pilot Controls (Spacebar / Up Arrow or Clicks)
-    window.addEventListener("keydown", (e) => {
-        if (!isGameRunning || isQuizActive) return;
-        if (e.code === "Space" || e.code === "ArrowUp") {
-            violet.velocity = violet.lift;
-        }
-    });
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-    canvas.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        if (!isGameRunning || isQuizActive) return;
-        violet.velocity = violet.lift;
-    });
-    
-    canvas.addEventListener("mousedown", () => {
-        if (!isGameRunning || isQuizActive) return;
-        violet.velocity = violet.lift;
-    });
-});
+                const response = await fetch(VERCEL_BACKEND_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: systemPrompt }),
+                    signal: controller.signal
+                });
 
-// =========================================================================
-// ⚙️ ENGINE CONTROLLERS
-// =========================================================================
-function initializeNewGame() {
-    // Reset core states
-    score = 0;
-    lives = 3;
-    violet.y = 200;
-    violet.velocity = 0;
-    obstacles = [];
-    frameCount = 0;
-    backgroundX = 0;
-    isGameRunning = true;
-    isQuizActive = false;
+                clearTimeout(timeoutId);
 
-    // Direct interface viewport updates
-    updateLiveHUD();
-    
-    document.getElementById("start-screen").classList.add("hidden");
-    document.getElementById("game-over-screen").classList.add("hidden");
-    document.getElementById("victory-screen").classList.add("hidden");
-    document.getElementById("quiz-modal").classList.add("hidden");
-
-    // Clear old loops and kickstart physics loop iteration
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    runGameCycle();
-}
-
-function updateLiveHUD() {
-    const scoreContainer = document.getElementById("score-container");
-    const heartsContainer = document.getElementById("hearts-container");
-
-    if (scoreContainer) scoreContainer.innerText = `Score: ${score}`;
-    if (heartsContainer) {
-        // Render exactly matching hearts strings matching live life count integers
-        heartsContainer.innerText = "❤️".repeat(Math.max(0, lives)) || "☠️";
-    }
-}
-
-// =========================================================================
-// 🔄 CORE LOOP LIFECYCLE
-// =========================================================================
-function runGameCycle() {
-    if (!isGameRunning) return;
-
-    if (!isQuizActive) {
-        clearAndDrawBackground();
-        updateGameObjects();
-        drawGameObjects();
-        checkCollisionBoundaries();
-    }
-
-    animationFrameId = requestAnimationFrame(runGameCycle);
-}
-
-function clearAndDrawBackground() {
-    // 🌅 PARALLAX MOVING CANVAS FORMULA: Draws two images seamlessly looping back-to-back
-    backgroundX -= BACKGROUND_SPEED;
-    if (backgroundX <= -canvas.width) {
-        backgroundX = 0;
-    }
-
-    // Draw primary background layer frame
-    ctx.drawImage(backgroundImage, backgroundX, 0, canvas.width, canvas.height);
-    // Draw trailing background layer frame to prevent white spaces
-    ctx.drawImage(backgroundImage, backgroundX + canvas.width, 0, canvas.width, canvas.height);
-}
-
-function updateGameObjects() {
-    frameCount++;
-
-    // Apply physics gravity vectors on the plane entity
-    violet.velocity += violet.gravity;
-    violet.y += violet.velocity;
-
-    // Generate random obstacles
-    if (frameCount % OBSTACLE_SPAWN_RATE === 0) {
-        const minHeight = 50;
-        const maxHeight = 280;
-        const obstacleHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-        const gap = 150; // Passing clearing allowance space for smooth flying
-
-        obstacles.push({
-            x: canvas.width,
-            y: 0,
-            width: 65,
-            height: obstacleHeight,
-            passed: false,
-            type: "top"
-        });
-
-        obstacles.push({
-            x: canvas.width,
-            y: obstacleHeight + gap,
-            width: 65,
-            height: canvas.height - (obstacleHeight + gap),
-            passed: false,
-            type: "bottom"
-        });
-    }
-
-    // Move obstacles westward across player coordinates
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= 3.5; // Custom flight speed mapping matching your original assets
-
-        // Score tracker rules calculations
-        if (!obstacles[i].passed && obstacles[i].x + obstacles[i].width < violet.x) {
-            obstacles[i].passed = true;
-            if (obstacles[i].type === "top") {
-                score += 10;
-                updateLiveHUD();
-
-                // Trigger victory cards once achieving high milestone scores
-                if (score >= 100) {
-                    triggerVictorySequence();
+                if (!response.ok) throw new Error(`HTTP Status ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.success === false || !data.reply) {
+                    throw new Error(data.error || "Backend skipped payload delivery.");
                 }
+
+                const parsedQuestion = parseRawTextToQuiz(data.reply);
+                if (parsedQuestion) {
+                    questionPool.push(parsedQuestion);
+                    success = true;
+                    console.log(`[Preloader]: Cached question for "${targetWord}" via Gemini.`);
+                } else {
+                    throw new Error("Text structural parse divergence error.");
+                }
+            } catch (error) {
+                console.warn(`[Preloader Warning]: Fetch failure for "${targetWord}" (Attempt ${attempts + 1}): ${error.message}`);
+                attempts++;
+                if (attempts < 2) await delay(1000);
             }
         }
 
-        // Clean out memory parameters for frames that exited view boundaries
-        if (obstacles[i].x + obstacles[i].width < 0) {
-            obstacles.splice(i, 1);
+        if (!success) {
+            console.log(`[Preloader]: Generating elementary fallback question for "${targetWord}".`);
+            const wordData = LOCAL_DICTIONARY[targetWord] || { 
+                definition: "To study and learn English words", 
+                wrongs: ["To jump up high", "To run backward", "To sleep now"] 
+            };
+            
+            const optionsList = [wordData.definition, ...wordData.wrongs];
+            const originalDefinition = wordData.definition;
+            
+            const shuffledOptions = [...optionsList].sort(() => 0.5 - Math.random());
+            const correctIndex = shuffledOptions.indexOf(originalDefinition);
+
+            questionPool.push({
+                question: `What does the word "${targetWord}" mean?`,
+                options: shuffledOptions,
+                correct: correctIndex
+            });
         }
+
+        updateProgressBar(questionPool.length);
+    }
+
+    const startBtn = document.getElementById("start-btn");
+    if (startBtn) {
+        startBtn.innerText = "START FLIGHT 🛫";
+        startBtn.disabled = false;
     }
 }
 
-function drawGameObjects() {
-    // 🛩️ Draw Violet the Pilot PNG Asset Sprite
-    ctx.drawImage(violetImage, violet.x, violet.y, violet.width, violet.height);
+function updateProgressBar(count) {
+    const progressFill = document.getElementById("flight-progress-fill");
+    const progressText = document.getElementById("progress-text");
+    const percentage = Math.floor((count / TOTAL_QUESTIONS_NEEDED) * 100);
 
-    // ⛰️ Draw Obstacles
-    ctx.fillStyle = "#2ecc71"; // Emerald green mountain terrain vectors
-    obstacles.forEach(obs => {
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    if (progressFill) progressFill.style.width = `${percentage}%`;
+    if (progressText) progressText.innerText = `Syncing with Gemini AI: ${percentage}%`;
+}
+
+function parseRawTextToQuiz(rawText) {
+    try {
+        const cleanText = rawText.replace(/```json|```/g, "").trim();
+        const questionMatch = cleanText.match(/(?:Question|Q):\s*(.*)/i);
+        const optAMatch = cleanText.match(/[A]\)?\s+(.*)/i);
+        const optBMatch = cleanText.match(/[B]\)?\s+(.*)/i);
+        const optCMatch = cleanText.match(/[C]\)?\s+(.*)/i);
+        const optDMatch = cleanText.match(/[D]\)?\s+(.*)/i);
+        const correctMatch = cleanText.match(/(?:Correct|Answer):\s*([A-D])/i);
+
+        if (questionMatch && optAMatch && optBMatch && optCMatch && optDMatch && correctMatch) {
+            const choices = [optAMatch[1].trim(), optBMatch[1].trim(), optCMatch[1].trim(), optDMatch[1].trim()];
+            const letterMapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+            
+            return {
+                question: questionMatch[1].trim(),
+                options: choices,
+                correct: letterMapping[correctMatch[1].toUpperCase()]
+            };
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function useLoadedQuestion() {
+    const quizModal = document.getElementById("quiz-modal");
+    const questionText = document.getElementById("question-text");
+    const optionsContainer = document.getElementById("options-container");
+
+    let currentQuestion = questionPool[currentQuestionIndex];
+    if (!currentQuestion) {
+        currentQuestion = {
+            question: "What does the word 'Sweater' mean?",
+            options: ["Warm clothes you wear when it is cold", "A big truck", "A school desk", "A noisy dog"],
+            correct: 0
+        };
+    }
+
+    questionText.innerText = currentQuestion.question;
+    optionsContainer.innerHTML = "";
+
+    currentQuestion.options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.className = "option-btn";
+        button.innerText = option;
+        button.onclick = () => verifyPlayerAnswer(index, currentQuestion.correct);
+        optionsContainer.appendChild(button);
     });
+
+    if (quizModal) quizModal.classList.remove("hidden");
 }
 
-function checkCollisionBoundaries() {
-    // Ceiling or Floor boundary collision rules
-    if (violet.y + violet.height > canvas.height || violet.y < 0) {
-        triggerTurbulenceIntercept();
-    }
+function verifyPlayerAnswer(selectedIndex, correctIndex) {
+    const quizModal = document.getElementById("quiz-modal");
+    if (quizModal) quizModal.classList.add("hidden");
 
-    // Obstacle intersection math metrics
-    for (let obs of obstacles) {
-        if (
-            violet.x < obs.x + obs.width &&
-            violet.x + violet.width > obs.x &&
-            violet.y < obs.y + obs.height &&
-            violet.y + violet.height > obs.y
-        ) {
-            triggerTurbulenceIntercept();
-            break;
-        }
-    }
-}
-
-// =========================================================================
-// ⚠️ INTERCEPTORS & STATE HANDLING
-// =========================================================================
-function triggerTurbulenceIntercept() {
-    isQuizActive = true;
-    violet.y = 200; // Snap violet cleanly back to the center line safely
-    violet.velocity = 0;
-    obstacles = []; // Flush active obstacles on loop reset boundaries
-
-    console.log("[Engine]: Intercepting loop execution. Firing recovery quiz...");
-    
-    // Call globally declared fallback function located in chat.js
-    if (typeof window.useLoadedQuestion === "function") {
-        window.useLoadedQuestion();
+    if (selectedIndex === correctIndex) {
+        currentQuestionIndex = (currentQuestionIndex + 1) % questionPool.length;
+        if (typeof window.resumeGameAfterSave === "function") window.resumeGameAfterSave();
     } else {
-        console.error("Critical: useLoadedQuestion function link absent inside chat.js module profile context.");
-        resumeGameAfterSave();
+        if (typeof window.deductHeart === "function") window.deductHeart();
     }
 }
 
-function resumeGameAfterSave() {
-    isQuizActive = false;
-    console.log("[Engine]: Quiz cleared. Resuming primary physics flight timeline updates.");
-}
+window.questionPool = questionPool;
+window.useLoadedQuestion = useLoadedQuestion;
 
-function deductHeart() {
-    lives--;
-    updateLiveHUD();
-
-    if (lives <= 0) {
-        triggerGameOverSequence();
-    } else {
-        // If they still have lives remaining, resume flight timeline configurations
-        resumeGameAfterSave();
-    }
-}
-
-function triggerGameOverSequence() {
-    isGameRunning = false;
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
-    document.getElementById("final-score").innerText = `Your Score: ${score}`;
-    document.getElementById("game-over-screen").classList.remove("hidden");
-}
-
-function triggerVictorySequence() {
-    isGameRunning = false;
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    document.getElementById("victory-screen").classList.remove("hidden");
-}
-
-// Global window assignments for tracking context bindings cleanly cross-module
-window.resumeGameAfterSave = resumeGameAfterSave;
-window.deductHeart = deductHeart;
+document.addEventListener("DOMContentLoaded", () => {
+    preloadAllQuestions();
+});
