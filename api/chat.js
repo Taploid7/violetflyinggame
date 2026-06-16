@@ -1,30 +1,25 @@
 module.exports = async function handler(req, res) {
-  // 1. Force explicit CORS policies so GitHub Pages can read the response
+  // 1. ABSOLUTE CORS OVERRIDE
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', '*');
 
-  // 2. Handle Browser Preflight security checks immediately
+  // 2. INSTANT PREFLIGHT APPROVAL
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
+  // 3. BULLETPROOF API CALL
   try {
-    const { prompt } = req.body;
+    const prompt = req.body.prompt;
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: "Missing GEMINI_API_KEY environment variable on server." });
+      return res.status(500).json({ error: "API Key missing on Vercel" });
     }
 
-    // 3. Direct Native API fetch request straight to Google's servers
-    const googleEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
-    const googleResponse = await fetch(googleEndpoint, {
+    const googleResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -33,20 +28,12 @@ module.exports = async function handler(req, res) {
       })
     });
 
-    if (!googleResponse.ok) {
-      const errorText = await googleResponse.text();
-      return res.status(googleResponse.status).json({ error: `Google API rejected request: ${errorText}` });
-    }
-
     const data = await googleResponse.json();
-    
-    // Extract the text payload out of Google's native JSON tree structure
     const aiResponseText = data.candidates[0].content.parts[0].text;
 
     return res.status(200).json({ reply: aiResponseText.trim() });
 
   } catch (error) {
-    console.error("Internal Vercel System Crash:", error);
-    return res.status(500).json({ error: "Internal Server API Error", details: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };

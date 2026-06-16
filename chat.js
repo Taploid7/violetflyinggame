@@ -1,4 +1,4 @@
-const VERCEL_BACKEND_URL = "https://game1-shfe-git-main-taploid7s-projects.vercel.app/api/chat";
+const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
 const vocabularyWords = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", "Lawn Mower", 
