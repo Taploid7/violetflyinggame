@@ -9,12 +9,12 @@
 </head>
 <body>
 
-    <div class="main-card">
+    <div class="main-card" id="launcher-dashboard">
         <h1>Violet the Pilot</h1>
         <div class="plane-emoji">🛩️</div>
         
-        <p>Help Violet navigate Taiwan! Press Spacebar to fly up.</p>
-        <p><strong>Target Goal: Answer 10 questions correctly to reach 200 points!</strong></p>
+        <p>Help Violet navigate Taiwan! Press Spacebar to control your flight deck vectors.</p>
+        <p><strong>Target Goal: Clear missions successfully to reach 200 points!</strong></p>
 
         <button id="action-button" onclick="useLoadedQuestion()" disabled style="opacity: 0.7; cursor: not-allowed;">
             Preloading AI Flight Plan... ⏳
@@ -30,7 +30,7 @@
 
     <div id="quiz-modal" class="modal hidden">
         <div class="modal-content">
-            <h2 id="question-text">Loading question content...</h2>
+            <h2 id="question-text">Loading intercept question...</h2>
             <div id="options-container" class="options-grid"></div>
         </div>
     </div>

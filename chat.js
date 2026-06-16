@@ -1,6 +1,5 @@
 const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
-// 🚀 NEW: Array structure to hold the 10 preloaded questions
 let questionPool = [];
 const TOTAL_QUESTIONS_NEEDED = 10;
 let currentQuestionIndex = 0;
@@ -18,11 +17,8 @@ const fallbackQuestions = [
     { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 }
 ];
 
-// 🚀 NEW: Batched loop loader that pulls all questions sequentially on initial launch
 async function preloadAllQuestions() {
-    console.log(`[Terminal Log]: 🛫 Starting batch preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
-    
-    // Shuffle the word bank list so matches don't run in the exact same sequence order
+    console.log(`[Terminal Log]: Starting batch preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
     const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
     for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
@@ -49,34 +45,28 @@ Correct: A`;
 
                 if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
                 const data = await response.json();
-                if (!data.reply) throw new Error("Empty payload from server.");
+                if (!data.reply) throw new Error("Empty payload.");
 
                 const parsedQuestion = parseRawTextToQuiz(data.reply);
                 if (parsedQuestion) {
                     questionPool.push(parsedQuestion);
                     success = true;
-                    console.log(`[Terminal Log]: Cache position [${i + 1}/10] loaded successfully for: ${targetWord}`);
                 } else {
-                    throw new Error("Regex structural parse mismatch.");
+                    throw new Error("Parse structure split variance exception.");
                 }
             } catch (error) {
                 attempts++;
-                console.warn(`⚠️ Fetch attempt ${attempts} failed for "${targetWord}". Retrying...`);
             }
         }
 
-        // If both attempts fail to reach the live API, load a clean fallback item gracefully
         if (!success) {
-            console.error(`❌ Fetching completely failed for "${targetWord}". Injecting safe fallback dynamic node item.`);
             const fallbackItem = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
-            questionPool.push({...fallbackItem, question: `[Local] ${fallbackItem.question}`});
+            questionPool.push({...fallbackItem, question: `[Cache] ${fallbackItem.question}`});
         }
 
-        // Update loading bar progress values mathematically
         updateProgressBar(questionPool.length);
     }
 
-    // Unlock the entry flight button once the cache array is full
     const actionButton = document.getElementById("action-button");
     if (actionButton) {
         actionButton.innerText = "Start Flight 🛫";
@@ -127,10 +117,7 @@ function useLoadedQuestion() {
     const questionText = document.getElementById("question-text");
     const optionsContainer = document.getElementById("options-container");
 
-    // Pull directly from our 10 preloaded questions
     let currentQuestion = questionPool[currentQuestionIndex];
-
-    // Safety fallback loop in case of array boundary index exceptions
     if (!currentQuestion) {
         currentQuestion = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
     }
@@ -154,17 +141,16 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
-        // Move forward to tracking next question element index in our pool cache array
         currentQuestionIndex = (currentQuestionIndex + 1) % TOTAL_QUESTIONS_NEEDED;
-        if (typeof resumeFlight === "function") resumeFlight();
+        if (typeof window.resumeFlight === "function") window.resumeFlight();
     } else {
-        if (typeof applyDamage === "function") applyDamage();
+        if (typeof window.applyDamage === "function") window.applyDamage();
     }
 }
 
+window.questionPool = questionPool;
 window.useLoadedQuestion = useLoadedQuestion;
 
-// Trigger batch preloading execution immediately on page loading completion
 document.addEventListener("DOMContentLoaded", () => {
     preloadAllQuestions();
 });
