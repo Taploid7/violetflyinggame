@@ -38,7 +38,7 @@ let violet = {
 let obstacles = [];
 // ⏱️ Flying Time Calibration: 360 frames at 60fps = Exactly 6 seconds between obstacles!
 const OBSTACLE_SPAWN_RATE = 360; 
-let frameCount = 0;
+let frameCount = 1; // Starts at 1 to prevent the '0 modulo' instant-spawn bug
 
 // =========================================================================
 // 🚀 INJECT INTERACTIVE CLICK EVENT HANDLERS
@@ -96,7 +96,9 @@ function initializeNewGame() {
     violet.y = 200;
     violet.velocity = 0;
     obstacles = [];
-    frameCount = 0;
+    
+    // Set to 1 so the game guarantees a full 6 seconds before the first pipe
+    frameCount = 1; 
     backgroundX = 0;
     isGameRunning = true;
     isQuizActive = false;
@@ -113,7 +115,7 @@ function initializeNewGame() {
 }
 
 function updateLiveHUD() {
-    // Target both common variations of score container IDs to ensure a visual update
+    // Aggressively target multiple possible HTML IDs to ensure the score visually updates
     const scoreContainer = document.getElementById("score-container");
     const scoreDisplay = document.getElementById("score");
     const heartsContainer = document.getElementById("hearts-container");
@@ -186,11 +188,12 @@ function updateGameObjects() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         obstacles[i].x -= 3.5; 
 
+        // Score logic: If the mountain passes Violet's X coordinate
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].width < violet.x) {
             obstacles[i].passed = true;
             if (obstacles[i].type === "top") {
                 score += 10;
-                updateLiveHUD(); // Visual display updates fired immediately here
+                updateLiveHUD(); // Instantly update the DOM to reflect the new score
 
                 if (score >= 100) {
                     triggerVictorySequence();
@@ -250,8 +253,10 @@ function triggerTurbulenceIntercept() {
 
 function resumeGameAfterSave() {
     isQuizActive = false;
-    // Reset frame counter upon question completion so player gets a fresh 6-second window 
-    frameCount = 0; 
+    
+    // CRITICAL FIX: Set frameCount to 1, NOT 0. 
+    // This forces the game to count all 360 frames (6 seconds) before spawning the next pipe!
+    frameCount = 1; 
     console.log("[Engine]: Quiz cleared. Resuming primary physics flight timeline updates.");
 }
 
@@ -280,5 +285,6 @@ function triggerVictorySequence() {
     document.getElementById("victory-screen").classList.remove("hidden");
 }
 
+// Global window assignments for tracking context bindings cleanly cross-module
 window.resumeGameAfterSave = resumeGameAfterSave;
 window.deductHeart = deductHeart;
