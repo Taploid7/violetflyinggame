@@ -3,23 +3,19 @@ const ctx = canvas.getContext("2d");
 const violetSprite = new Image();
 violetSprite.src = "assets/violet.png"; 
 
-// Game State Variables
 let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.10, velocity: 0 };
 let score = 0, lives = 3;
 let isGameStarted = false;
 let isGameActive = false;
 let isPausedForQuiz = false;
-
 let bgX = 0, bgSpeed = 2, jitterTimer = 0;
 
-// Input
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz && isGameStarted) {
         violet.velocity = -3.2;
     }
 });
 
-// UI Controls
 function startGameNow() {
     isGameStarted = true; 
     isGameActive = true; 
@@ -37,7 +33,6 @@ function startGameNow() {
 }
 
 function update() {
-    // Blocks all logic if menu is up
     if (!isGameStarted || !isGameActive || isPausedForQuiz) return;
     
     violet.velocity += violet.gravity;
@@ -47,7 +42,6 @@ function update() {
     bgX -= bgSpeed;
     if (bgX <= -canvas.width) bgX = 0;
     
-    // Bounds Check
     if (violet.y + violet.height >= canvas.height - 10 || violet.y <= 10) {
         triggerDippedQuizEvent();
     }
@@ -59,11 +53,9 @@ function update() {
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Sky
     ctx.fillStyle = "#2c3e50"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Floor track
     ctx.fillStyle = "#34495e";
     ctx.fillRect(bgX, 470, canvas.width, 30);
     ctx.fillRect(bgX + canvas.width, 470, canvas.width, 30);
@@ -84,7 +76,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Game Flow Handlers
 function triggerDippedQuizEvent() {
     isPausedForQuiz = true;
     violet.y = 220; 
@@ -125,5 +116,4 @@ function resetGame() {
     startGameNow(); 
 }
 
-// Start
 gameLoop();
