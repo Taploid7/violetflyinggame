@@ -3,48 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Violet the Pilot</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Violet the Pilot - Vocabulary Flight</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="main-card">
+        <h1>Violet the Pilot</h1>
+        <div class="plane-emoji">🛩️</div>
+        
+        <p>Help Violet navigate Taiwan! Press Spacebar to fly up.</p>
+        <p><strong>Target Goal: Reach a score of 200 to win!</strong></p>
 
-        <div id="ui-layer" class="hidden">
-            <div id="hearts-container">❤️❤️❤️</div>
-            <div id="score-container">Score: 0</div>
-        </div>
+        <button id="action-button" onclick="useLoadedQuestion()">Loading AI Questions... ⏳</button>
 
-        <div id="start-screen">
-            <h1>Violet the Pilot 🛩️</h1>
-            <p>Help Violet navigate Taiwan! Press Spacebar to fly up.<br>
-               <b>Target Goal: Reach a score of 200 without crashing to win!</b>
-            </p>
-            <button id="start-btn">Loading AI Questions... ⏳</button>
-        </div>
-
-        <div id="quiz-modal" class="hidden">
-            <div class="modal-content">
-                <h2>Oh no! Violet is dipping!</h2>
-                <p>Answer correctly to fly back up!</p>
-                <div id="question-text">Loading vocabulary challenge...</div>
-                <div id="options-container">
-                    </div>
+        <div class="progress-tracker">
+            <span id="progress-text">Flight Progress: 0 / 200</span>
+            <div class="progress-bar-container">
+                <div id="flight-progress-fill"></div>
             </div>
         </div>
+    </div>
 
-        <div id="game-over-screen" class="hidden">
-            <h2>Game Over! 💀</h2>
-            <p id="final-score">You explored Taiwan!</p>
-            <button onclick="resetGame()">Fly Again 🔄</button>
-        </div>
-
-        <div id="victory-screen" class="hidden">
-            <h2>Taiwan Fully Explored! 🏆</h2>
-            <p>Amazing piloting! You successfully completed the flight challenge with 200 points!</p>
-            <button onclick="resetGame()">Fly Again 🔄</button>
+    <div id="quiz-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="question-text">Loading question content...</h2>
+            <div id="options-container" class="options-grid"></div>
         </div>
     </div>
 

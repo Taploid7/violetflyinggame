@@ -3,6 +3,7 @@ const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 let nextQuestionCache = null;
 let isFetchingQuestion = false;
 
+// Custom Core Vocabulary Bank List
 const MY_WORD_BANK = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
     "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
@@ -19,7 +20,14 @@ const fallbackQuestions = [
 async function prefetchNextQuestion() {
     if (isFetchingQuestion || nextQuestionCache) return;
     isFetchingQuestion = true;
-    console.log("[Terminal Log]: ⏳ Requesting Gemini AI question...");
+    
+    const actionButton = document.getElementById("action-button");
+    if (actionButton && !nextQuestionCache) {
+        actionButton.innerText = "Loading AI Questions... ⏳";
+        actionButton.disabled = true;
+        actionButton.style.opacity = "0.7";
+        actionButton.style.cursor = "not-allowed";
+    }
 
     const randomTargetWord = MY_WORD_BANK[Math.floor(Math.random() * MY_WORD_BANK.length)];
 
@@ -39,36 +47,35 @@ Correct: A`;
             body: JSON.stringify({ prompt: systemPrompt })
         });
 
-        // 🚨 CRITICAL TROUBLESHOOTING UPGRADE:
-        // If the server returns an error code (like 500), parse the JSON payload to reveal the inner debug details!
-        if (!response.ok) {
-            let errorDetails = "Could not parse server error message.";
-            try {
-                const errorData = await response.json();
-                console.error("⛔ [DETAILED BACKEND CRASH REPORT]:", errorData);
-                errorDetails = JSON.stringify(errorData, null, 2);
-            } catch (e) {
-                const rawText = await response.text();
-                console.error("⛔ [RAW BACKEND HTML/TEXT ERROR]:", rawText);
-                errorDetails = rawText;
-            }
-            throw new Error(`HTTP Error Status: ${response.status}\nDetails:\n${errorDetails}`);
-        }
+        if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
         
         const data = await response.json();
-        if (!data.reply) throw new Error("Empty payload from server template.");
+        if (!data.reply) throw new Error("Empty response payload framework.");
 
         const cleanParsedQuestion = parseRawTextToQuiz(data.reply);
         if (cleanParsedQuestion) {
             nextQuestionCache = cleanParsedQuestion;
             console.log(`[Terminal Log]: ✅ Gemini AI question pre-loaded for: ${randomTargetWord}`);
+            
+            if (actionButton) {
+                actionButton.innerText = "Start Flight 🛫";
+                actionButton.disabled = false;
+                actionButton.style.opacity = "1";
+                actionButton.style.cursor = "pointer";
+            }
         } else {
-            console.warn("⚠️ Received raw text could not be processed by parser regular expressions:", data.reply);
             throw new Error("Text parsing schema structural mismatch.");
         }
     } catch (error) {
-        console.error("❌ AI Fetch Layer FAILED! Details:", error.message);
+        console.error("❌ AI Fetch Layer Failure. Using Fallback:", error.message);
         nextQuestionCache = fallbackQuestions[Math.floor(Math.random() * fallbackQuestions.length)];
+        
+        if (actionButton) {
+            actionButton.innerText = "Start Flight 🛫";
+            actionButton.disabled = false;
+            actionButton.style.opacity = "1";
+            actionButton.style.cursor = "pointer";
+        }
     } finally {
         isFetchingQuestion = false;
     }
@@ -96,6 +103,7 @@ function parseRawTextToQuiz(rawText) {
             };
         }
         
+        // Secondary Line-Split Fallback Parsing Route
         const lines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length >= 6) {
             const question = lines[0].replace(/^(Question:\s*|Q:\s*)/i, "");
@@ -110,11 +118,7 @@ function parseRawTextToQuiz(rawText) {
             
             if (letterMatch) {
                 const letterMapping = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
-                return {
-                    question: question,
-                    options: choices,
-                    correct: letterMapping[letterMatch[1].toUpperCase()]
-                };
+                return { question, options: choices, correct: letterMapping[letterMatch[1].toUpperCase()] };
             }
         }
         return null;
@@ -146,13 +150,13 @@ function useLoadedQuestion() {
         optionsContainer.appendChild(button);
     });
 
-    quizModal.classList.remove("hidden");
+    if (quizModal) quizModal.classList.remove("hidden");
     prefetchNextQuestion(); 
 }
 
 function verifyPlayerAnswer(selectedIndex, correctIndex) {
     const quizModal = document.getElementById("quiz-modal");
-    quizModal.classList.add("hidden");
+    if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
         if (typeof resumeFlight === "function") resumeFlight();
@@ -161,6 +165,7 @@ function verifyPlayerAnswer(selectedIndex, correctIndex) {
     }
 }
 
+// Global scope attachment mapping layout
 window.prefetchNextQuestion = prefetchNextQuestion;
 window.useLoadedQuestion = useLoadedQuestion;
 
