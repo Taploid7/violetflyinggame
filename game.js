@@ -1,170 +1,285 @@
+// =========================================================================
+// 🎮 VIOLET THE PILOT - CORE PHYSICS ENGINE & LAYOUT ENGINE CONTEXT
+// =========================================================================
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-const violetSprite = new Image();
-violetSprite.src = "assets/violet.png"; 
+// --- Game State Tracking ---
+let isGameRunning = false;
+let isQuizActive = false;
+let score = 0;
+let lives = 3;
+let animationFrameId = null;
 
-const bgImage = new Image();
-bgImage.src = "assets/background.png";
+// --- Pilot Physics Entities ---
+let violet = {
+    x: 100,
+    y: 200,
+    width: 50,
+    height: 40,
+    gravity: 0.4,
+    lift: -7,
+    velocity: 0
+};
 
-let violet = { x: 100, y: 220, width: 60, height: 60, gravity: 0.04, velocity: 0 };
-let score = 0, lives = 3;
-let isGameStarted = false;
-let isGameActive = false;
-let isPausedForQuiz = false;
-let hasWon = false;
+// --- Obstacles Array Trackers ---
+let obstacles = [];
+const OBSTACLE_SPAWN_RATE = 100; // Frames between obstacles
+let frameCount = 0;
 
-let bgX = 0, bgSpeed = 1.5, jitterTimer = 0;
+// =========================================================================
+// 🚀 INJECT INTERACTIVE CLICK EVENT HANDLERS (Fixes Unclickable Button)
+// =========================================================================
+document.addEventListener("DOMContentLoaded", () => {
+    const startBtn = document.getElementById("start-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const winRestartBtn = document.getElementById("win-restart-btn");
 
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space" && isGameActive && !isPausedForQuiz && isGameStarted) {
-        violet.velocity = -2.0;
+    if (startBtn) {
+        startBtn.onclick = () => {
+            console.log("[Engine]: Launching game instance...");
+            initializeNewGame();
+        };
     }
+
+    if (restartBtn) {
+        restartBtn.onclick = () => {
+            initializeNewGame();
+        };
+    }
+
+    if (winRestartBtn) {
+        winRestartBtn.onclick = () => {
+            initializeNewGame();
+        };
+    }
+
+    // Capture Pilot Controls (Spacebar / Up Arrow or Clicks)
+    window.addEventListener("keydown", (e) => {
+        if (!isGameRunning || isQuizActive) return;
+        if (e.code === "Space" || e.code === "ArrowUp") {
+            violet.velocity = violet.lift;
+        }
+    });
+
+    canvas.addEventListener("touchstart", () => {
+        if (!isGameRunning || isQuizActive) return;
+        violet.velocity = violet.lift;
+    });
+    
+    canvas.addEventListener("mousedown", () => {
+        if (!isGameRunning || isQuizActive) return;
+        violet.velocity = violet.lift;
+    });
 });
 
-function startGameNow() {
-    isGameStarted = true; 
-    isGameActive = true; 
-    isPausedForQuiz = false; 
-    hasWon = false;
-    lives = 3; 
-    score = 0; 
-    violet.y = 220;
+// =========================================================================
+// ⚙️ ENGINE CONTROLLERS
+// =========================================================================
+function initializeNewGame() {
+    // Reset core states
+    score = 0;
+    lives = 3;
+    violet.y = 200;
     violet.velocity = 0;
+    obstacles = [];
+    frameCount = 0;
+    isGameRunning = true;
+    isQuizActive = false;
+
+    // Direct interface viewport updates
+    updateLiveHUD();
     
     document.getElementById("start-screen").classList.add("hidden");
-    document.getElementById("quiz-modal").classList.add("hidden");
     document.getElementById("game-over-screen").classList.add("hidden");
     document.getElementById("victory-screen").classList.add("hidden");
-    document.getElementById("ui-layer").classList.remove("hidden");
-    updateHeartsDisplay();
+    document.getElementById("quiz-modal").classList.add("hidden");
+
+    // Clear old loops and kickstart physics loop iteration
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    runGameCycle();
 }
 
-function update() {
-    if (!isGameStarted || !isGameActive || isPausedForQuiz) return;
-    
+function updateLiveHUD() {
+    const scoreContainer = document.getElementById("score-container");
+    const heartsContainer = document.getElementById("hearts-container");
+
+    if (scoreContainer) scoreContainer.innerText = `Score: ${score}`;
+    if (heartsContainer) {
+        // Render exactly matching hearts strings matching live life count integers
+        heartsContainer.innerText = "❤️".repeat(Math.max(0, lives)) || "☠️";
+    }
+}
+
+// =========================================================================
+// 🔄 CORE LOOP LIFECYCLE
+// =========================================================================
+function runGameCycle() {
+    if (!isGameRunning) return;
+
+    if (!isQuizActive) {
+        clearCanvasFrame();
+        updateGameObjects();
+        drawGameObjects();
+        checkCollisionBoundaries();
+    }
+
+    animationFrameId = requestAnimationFrame(runGameCycle);
+}
+
+function clearCanvasFrame() {
+    // High visibility arcade background sky color fills
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function updateGameObjects() {
+    frameCount++;
+
+    // Apply basic physics constants on the plane entity
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
-    jitterTimer += 0.2; 
-    
-    if (bgImage.complete && bgImage.naturalWidth > 0) {
-        let scaleFactor = canvas.height / bgImage.naturalHeight;
-        let scaledWidth = bgImage.naturalWidth * scaleFactor;
-        
-        bgX -= bgSpeed;
-        if (bgX <= -scaledWidth) {
-            bgX = 0;
+
+    // Generate random obstacles
+    if (frameCount % OBSTACLE_SPAWN_RATE === 0) {
+        const minHeight = 40;
+        const maxHeight = 300;
+        const obstacleHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+        const gap = 140; // Passing clearing allowance space
+
+        obstacles.push({
+            x: canvas.width,
+            y: 0,
+            width: 60,
+            height: obstacleHeight,
+            passed: false,
+            type: "top"
+        });
+
+        obstacles.push({
+            x: canvas.width,
+            y: obstacleHeight + gap,
+            width: 60,
+            height: canvas.height - (obstacleHeight + gap),
+            passed: false,
+            type: "bottom"
+        });
+    }
+
+    // Move obstacles westward across player coordinates
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= 4; // Airspeed forward velocity scalar
+
+        // Score tracker rules calculations
+        if (!obstacles[i].passed && obstacles[i].x + obstacles[i].width < violet.x) {
+            obstacles[i].passed = true;
+            if (obstacles[i].type === "top") {
+                score += 10;
+                updateLiveHUD();
+
+                // Trigger victory cards once achieving high milestone scores
+                if (score >= 100) {
+                    triggerVictorySequence();
+                }
+            }
         }
-    } else {
-        bgX -= bgSpeed;
-        if (bgX <= -canvas.width) bgX = 0;
-    }
-    
-    if (violet.y + violet.height >= canvas.height - 30 || violet.y <= 10) {
-        triggerDippedQuizEvent();
-    }
-    
-    score += 1;
-    let finalScore = Math.floor(score / 10);
-    document.getElementById("score-container").innerText = `Score: ${finalScore}`;
 
-    if (finalScore >= 100 && !hasWon) {
-        triggerVictoryEvent();
+        // Clean out memory parameters for frames that exited view boundaries
+        if (obstacles[i].x + obstacles[i].width < 0) {
+            obstacles.splice(i, 1);
+        }
     }
 }
 
-function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (bgImage.complete && bgImage.naturalWidth !== 0) {
-        let scaleFactor = canvas.height / bgImage.naturalHeight;
-        let scaledWidth = bgImage.naturalWidth * scaleFactor;
-        
-        ctx.drawImage(bgImage, bgX, 0, scaledWidth, canvas.height);
-        ctx.drawImage(bgImage, bgX + scaledWidth, 0, scaledWidth, canvas.height);
-    } else {
-        ctx.fillStyle = "#70c5ce"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+function drawGameObjects() {
+    // 🛩️ Draw Violet the Pilot
+    ctx.fillStyle = "#e74c3c"; // Vibrant crimson pilot plane chassis body block style
+    ctx.fillRect(violet.x, violet.y, violet.width, violet.height);
+
+    // Pilot details (Propeller windows)
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(violet.x + violet.width - 15, violet.y + 10, 10, 10);
+
+    // ⛰️ Draw Obstacles
+    ctx.fillStyle = "#2ecc71"; // Emerald green mountain terrain vectors
+    obstacles.forEach(obs => {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    });
+}
+
+function checkCollisionBoundaries() {
+    // Ceiling or Floor boundary collision rules
+    if (violet.y + violet.height > canvas.height || violet.y < 0) {
+        triggerTurbulenceIntercept();
     }
 
-    let offset = (isGameActive && !isPausedForQuiz && isGameStarted) ? Math.sin(jitterTimer) * 1.5 : 0;
-    
-    if (violetSprite.complete && violetSprite.naturalWidth !== 0) {
-        ctx.drawImage(violetSprite, violet.x, violet.y + offset, violet.width, violet.height);
-    } else {
-        ctx.fillStyle = "#e74c3c";
-        ctx.fillRect(violet.x, violet.y + offset, violet.width, violet.height);
+    // Obstacle intersection math metrics
+    for (let obs of obstacles) {
+        if (
+            violet.x < obs.x + obs.width &&
+            violet.x + violet.width > obs.x &&
+            violet.y < obs.y + obs.height &&
+            violet.y + violet.height > obs.y
+        ) {
+            triggerTurbulenceIntercept();
+            break;
+        }
     }
 }
 
-function gameLoop() {
-    update();
-    render();
-    requestAnimationFrame(gameLoop);
-}
-
-function triggerDippedQuizEvent() {
-    isPausedForQuiz = true;
-    if (violet.y > 250) {
-        violet.y = canvas.height - violet.height - 35;
-    } else {
-        violet.y = 15;
-    }
+// =========================================================================
+// ⚠️ INTERCEPTORS & STATE HANDLING
+// =========================================================================
+function triggerTurbulenceIntercept() {
+    isQuizActive = true;
+    violet.y = 200; // Snap violet cleanly back to the center line safely
     violet.velocity = 0;
-    document.getElementById("quiz-modal").classList.remove("hidden");
-    fetchAIQuestion(); 
-}
+    obstacles = []; // Flush active mountains on loop reset boundaries
 
-// 🚀 UPDATED: Pulls clean data directly from your preloaded batch arrays
-function fetchAIQuestion() {
+    console.log("[Engine]: Intercepting loop execution. Firing recovery quiz...");
+    
+    // Call globally declared fallback function located in chat.js
     if (typeof window.useLoadedQuestion === "function") {
         window.useLoadedQuestion();
     } else {
-        console.warn("Preloader system array unlinked. Resuming default vectors.");
+        // Emergency fail-safe handler recovery profile sequence
+        console.error("Critical: useLoadedQuestion function link absent inside chat.js module profile context.");
         resumeGameAfterSave();
     }
 }
 
+function resumeGameAfterSave() {
+    isQuizActive = false;
+    console.log("[Engine]: Quiz cleared. Resuming primary physics flight timeline updates.");
+}
+
 function deductHeart() {
     lives--;
-    updateHeartsDisplay();
+    updateLiveHUD();
+
     if (lives <= 0) {
-        endGame();
+        triggerGameOverSequence();
     } else {
-        fetchAIQuestion();
+        // If they still have lives remaining, resume flight timeline configurations
+        resumeGameAfterSave();
     }
 }
 
-function updateHeartsDisplay() {
-    document.getElementById("hearts-container").innerText = "❤️".repeat(lives);
-}
+function triggerGameOverSequence() {
+    isGameRunning = false;
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
-function resumeGameAfterSave() {
-    isPausedForQuiz = false;
-    if (violet.y > 250) {
-        violet.velocity = -4.5;
-    } else {
-        violet.velocity = 1.0;
-    }
-    document.getElementById("quiz-modal").classList.add("hidden");
-}
-
-function endGame() {
-    isGameActive = false;
-    document.getElementById("quiz-modal").classList.add("hidden");
+    document.getElementById("final-score").innerText = `Your Score: ${score}`;
     document.getElementById("game-over-screen").classList.remove("hidden");
-    document.getElementById("final-score").innerText = `You explored Taiwan! Score: ${Math.floor(score / 10)}`;
 }
 
-function triggerVictoryEvent() {
-    isGameActive = false;
-    hasWon = true;
-    document.getElementById("ui-layer").classList.add("hidden");
+function triggerVictorySequence() {
+    isGameRunning = false;
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
     document.getElementById("victory-screen").classList.remove("hidden");
 }
 
-function resetGame() { 
-    startGameNow(); 
-}
-
-gameLoop();
+// Global window assignments for tracking context bindings cleanly cross-module
+window.resumeGameAfterSave = resumeGameAfterSave;
+window.deductHeart = deductHeart;
