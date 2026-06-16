@@ -1,9 +1,14 @@
+// =========================================================================
+// 🧠 VIOLET THE PILOT - BACKEND AI PRELOADER & INTERCEPT MANAGEMENT SYSTEM
+// =========================================================================
+
 const VERCEL_BACKEND_URL = "https://game1-shfe.vercel.app/api/chat";
 
 let questionPool = [];
 const TOTAL_QUESTIONS_NEEDED = 10;
 let currentQuestionIndex = 0;
 
+// Dynamic word selection array mapped across standard vocabulary modules
 const MY_WORD_BANK = [
     "Wrench", "Pliers", "Appliances", "Reassemble", "Tinkering", 
     "Lawn Mower", "Engine", "Elaborate", "Scratch", "Sweater", 
@@ -12,7 +17,7 @@ const MY_WORD_BANK = [
     "Grateful", "Miserable", "Appetite", "Jubilantly", "Valor", "Esteem"
 ];
 
-// 🚀 ROBUST FALLBACK DATABASE
+// 🚀 FAILSAFE INSTANT RECOVERY POOL (Keeps the progress bar filling even on network 500 drops!)
 const fallbackQuestions = [
     { question: "What does the word 'Reassemble' mean?", options: ["To put pieces back together", "To break apart completely", "To move very quickly", "To clear out space"], correct: 0 },
     { question: "What does the word 'Precision' mean?", options: ["The quality of being exact and accurate", "Moving in a clumsy way", "A type of heavy machinery", "Feeling completely lost"], correct: 0 },
@@ -20,8 +25,11 @@ const fallbackQuestions = [
     { question: "What does the word 'Altitude' mean?", options: ["The speed of an object", "The height of an object above sea level", "The weight of a fuel tank", "The direction of wind currents"], correct: 1 }
 ];
 
+/**
+ * Runs asynchronously on DOM launch to bundle all questions sequentially
+ */
 async function preloadAllQuestions() {
-    console.log(`[Cache Log]: Initializing vocabulary matrix for ${TOTAL_QUESTIONS_NEEDED} items...`);
+    console.log(`[Terminal Log]: Starting batch preloading sequence for ${TOTAL_QUESTIONS_NEEDED} questions...`);
     const shuffledWords = [...MY_WORD_BANK].sort(() => 0.5 - Math.random());
 
     for (let i = 0; i < TOTAL_QUESTIONS_NEEDED; i++) {
@@ -29,7 +37,6 @@ async function preloadAllQuestions() {
         let success = false;
         let attempts = 0;
 
-        // Try up to 2 times per word before falling back gracefully
         while (!success && attempts < 2) {
             try {
                 const systemPrompt = `Generate one unique intermediate English vocabulary multiple-choice question for the target word: "${targetWord}".
@@ -47,26 +54,24 @@ Correct: A`;
                     body: JSON.stringify({ prompt: systemPrompt })
                 });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP Status ${response.status}`);
                 const data = await response.json();
-                if (!data.reply) throw new Error("Empty payload response.");
+                if (!data.reply) throw new Error("Empty text block payload.");
 
                 const parsedQuestion = parseRawTextToQuiz(data.reply);
                 if (parsedQuestion) {
                     questionPool.push(parsedQuestion);
                     success = true;
                 } else {
-                    throw new Error("Text structural parse exception.");
+                    throw new Error("Text structural parse divergence error.");
                 }
             } catch (error) {
-                console.warn(`[Preloader Warning]: Attempt ${attempts + 1} failed for "${targetWord}". Error: ${error.message}`);
                 attempts++;
             }
         }
 
-        // 🚀 SAFE RECOVERY: If API fails, pull a dynamic fallback question so the bar keeps moving!
+        // 🚀 SAFE FALLBACK INTERCEPT: Inject local asset matrix if remote API breaks
         if (!success) {
-            console.log(`[Preloader]: Injecting local fallback question context asset for index alignment.`);
             const fallbackItem = fallbackQuestions[i % fallbackQuestions.length];
             questionPool.push({ ...fallbackItem });
         }
@@ -74,26 +79,29 @@ Correct: A`;
         updateProgressBar(questionPool.length);
     }
 
-    // Activate the Takeoff Engine button once the batch hits 10 items
-    const actionButton = document.getElementById("action-button");
-    if (actionButton) {
-        actionButton.innerText = "START FLIGHT 🛫";
-        actionButton.disabled = false;
-        actionButton.style.opacity = "1";
-        actionButton.style.cursor = "pointer";
-        actionButton.style.background = "linear-gradient(135deg, #2ecc71, #27ae60)";
+    // 🛫 UNLOCK LAUNCHPAD: Transform title button once loading hits 100%
+    const startBtn = document.getElementById("start-btn");
+    if (startBtn) {
+        startBtn.innerText = "START FLIGHT 🛫";
+        startBtn.disabled = false;
     }
 }
 
+/**
+ * Updates UI progress indicators
+ */
 function updateProgressBar(count) {
     const progressFill = document.getElementById("flight-progress-fill");
     const progressText = document.getElementById("progress-text");
     const percentage = Math.floor((count / TOTAL_QUESTIONS_NEEDED) * 100);
 
     if (progressFill) progressFill.style.width = `${percentage}%`;
-    if (progressText) progressText.innerText = `LOADING FLIGHT PLANS: ${count} / ${TOTAL_QUESTIONS_NEEDED} (${percentage}%)`;
+    if (progressText) progressText.innerText = `Syncing with Gemini AI: ${percentage}%`;
 }
 
+/**
+ * RegEx line-parser to break structural AI text returns into application objects
+ */
 function parseRawTextToQuiz(rawText) {
     try {
         const cleanText = rawText.replace(/```json|```/g, "").trim();
@@ -120,6 +128,9 @@ function parseRawTextToQuiz(rawText) {
     }
 }
 
+/**
+ * Triggers modal setup and updates inner option configurations
+ */
 function useLoadedQuestion() {
     const quizModal = document.getElementById("quiz-modal");
     const questionText = document.getElementById("question-text");
@@ -144,18 +155,23 @@ function useLoadedQuestion() {
     if (quizModal) quizModal.classList.remove("hidden");
 }
 
+/**
+ * Validates player feedback and branches mechanics accordingly
+ */
 function verifyPlayerAnswer(selectedIndex, correctIndex) {
     const quizModal = document.getElementById("quiz-modal");
     if (quizModal) quizModal.classList.add("hidden");
 
     if (selectedIndex === correctIndex) {
+        // Advance pointer index along cached stack
         currentQuestionIndex = (currentQuestionIndex + 1) % questionPool.length;
-        if (typeof window.resumeFlight === "function") window.resumeFlight();
+        if (typeof window.resumeGameAfterSave === "function") window.resumeGameAfterSave();
     } else {
-        if (typeof window.applyDamage === "function") window.applyDamage();
+        if (typeof window.deductHeart === "function") window.deductHeart();
     }
 }
 
+// Global scope hooks binding systems to core frame ticker
 window.questionPool = questionPool;
 window.useLoadedQuestion = useLoadedQuestion;
 

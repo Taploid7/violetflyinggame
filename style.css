@@ -1,3 +1,13 @@
+/* =========================================================================
+   🎮 VIOLET THE PILOT - CRUNCHY KIDS RETRO ARCADE STYLING PROFILES
+   ========================================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -11,6 +21,7 @@ body {
     overflow: hidden;
 }
 
+/* --- THE GAME ENGINE SCREEN CANVAS WRAPPER --- */
 #game-container {
     position: relative;
     width: 800px;
@@ -23,9 +34,12 @@ body {
 
 canvas {
     display: block;
+    width: 100%;
+    height: 100%;
     border-radius: 16px;
 }
 
+/* --- HUD COMPONENT STYLING OVERLAYS --- */
 #ui-layer {
     position: absolute;
     top: 25px;
@@ -33,14 +47,28 @@ canvas {
     right: 25px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 26px;
     font-weight: bold;
     color: white;
     text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
-    pointer-events: none;
+    pointer-events: none; /* Allows mouse clicks to go right through to the game */
     z-index: 5;
 }
 
+#score-container, #hearts-container {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px 18px;
+    border-radius: 14px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#hearts-container {
+    letter-spacing: 3px;
+}
+
+/* --- VIEWPORT LAYER UTILITIES --- */
 .hidden {
     display: none !important;
 }
@@ -56,6 +84,7 @@ canvas {
     box-sizing: border-box;
 }
 
+/* --- START PANEL MAIN BOARD LOOK --- */
 #start-screen {
     background: linear-gradient(135deg, #2980b9, #6dd5fa, #ffffff);
     display: flex;
@@ -63,6 +92,7 @@ canvas {
     justify-content: center;
     align-items: center;
     color: #1a252f;
+    padding: 20px;
 }
 
 #start-screen h1 {
@@ -75,9 +105,10 @@ canvas {
     animation: floatingTitle 2s infinite alternate ease-in-out;
 }
 
+/* 🎈 HIGH JUICE FLOATING HEADLINE */
 @keyframes floatingTitle {
-    0% { transform: translateY(0px); }
-    100% { transform: translateY(-10px); }
+    0% { transform: translateY(0px) rotate(-1deg); }
+    100% { transform: translateY(-12px) rotate(1deg); }
 }
 
 #start-screen p {
@@ -87,11 +118,42 @@ canvas {
     color: #2c3e50;
 }
 
+/* --- PROGRESS TRACK BAR RENDERS --- */
+.preloader-box {
+    width: 320px;
+    margin-top: 25px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.bar-bg {
+    width: 100%;
+    height: 16px;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    margin-top: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.bar-fill {
+    width: 0%;
+    height: 100%;
+    background: #2ecc71;
+    border-radius: 10px;
+    transition: width 0.25s ease-in-out;
+}
+
+/* --- RECOVERY QUIZ INTERCEPT DECK --- */
 #quiz-modal {
-    background-color: rgba(28, 40, 51, 0.85);
+    background-color: rgba(28, 40, 51, 0.88);
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 20px;
 }
 
 .modal-content {
@@ -100,14 +162,17 @@ canvas {
     padding: 35px;
     border-radius: 24px;
     max-width: 550px;
-    width: 85%;
+    width: 90%;
     box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    border: 4px solid #3498db;
 }
 
 .modal-content h2 {
     color: #e74c3c;
     font-size: 28px;
     margin-top: 0;
+    font-weight: 700;
+    letter-spacing: 1px;
 }
 
 #question-text {
@@ -115,16 +180,17 @@ canvas {
     font-weight: 600;
     margin: 25px 0;
     line-height: 1.4;
+    color: #34495e;
 }
 
 #options-container {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 15px;
 }
 
-/* --- KID APPEAL BUTTONS --- */
-.option-btn {
+/* --- 💥 INTERACTIVE CRUNCHY BUTTON ELEMENTS --- */
+.option-btn, #start-btn, #restart-btn, #win-restart-btn {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
     background-color: #3498db;
@@ -135,21 +201,47 @@ canvas {
     cursor: pointer;
     font-size: 18px;
     box-shadow: 0 6px 0px #2980b9;
-    transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: scale(1);
+    text-align: center;
 }
 
-.option-btn:hover {
+/* Hover popup effects */
+.option-btn:hover, #start-btn:hover:not(:disabled), #restart-btn:hover, #win-restart-btn:hover {
     background-color: #2980b9;
     transform: scale(1.03) translateY(-2px);
     box-shadow: 0 8px 0px #1f618d;
 }
 
-.option-btn:active {
+/* Tactile button crunch depression simulation mechanics */
+.option-btn:active, #start-btn:active, #restart-btn:active, #win-restart-btn:active {
     transform: scale(0.98) translateY(4px);
     box-shadow: 0 2px 0px #1a252f;
 }
 
+/* --- START & RESET CONTROL LAYOUTS --- */
+#start-btn, #restart-btn {
+    padding: 16px 45px;
+    font-size: 24px;
+    background-color: #2ecc71;
+    box-shadow: 0 6px 0px #27ae60;
+    margin-top: 25px;
+}
+
+#start-btn:hover:not(:disabled), #restart-btn:hover {
+    background-color: #27ae60;
+    box-shadow: 0 9px 0px #1e8449;
+}
+
+#start-btn:disabled {
+    background-color: #bdc3c7 !important;
+    box-shadow: 0 6px 0px #95a5a6 !important;
+    cursor: not-allowed;
+    transform: none !important;
+    opacity: 0.7;
+}
+
+/* --- GAME OVER INTERFACE PANELS --- */
 #game-over-screen {
     background: linear-gradient(135deg, #2c3e50, #1a252f);
     display: flex;
@@ -157,6 +249,7 @@ canvas {
     justify-content: center;
     align-items: center;
     color: white;
+    padding: 20px;
 }
 
 #game-over-screen h1 {
@@ -166,40 +259,14 @@ canvas {
     margin: 0 0 10px 0;
 }
 
-#start-btn, #restart-btn {
-    font-family: 'Fredoka', sans-serif;
+#final-score {
+    font-size: 22px;
+    color: #ecf0f1;
+    margin-bottom: 10px;
     font-weight: 600;
-    padding: 16px 45px;
-    font-size: 24px;
-    background-color: #2ecc71;
-    color: white;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    margin-top: 30px;
-    box-shadow: 0 6px 0px #27ae60;
-    transition: all 0.15s ease;
 }
 
-#start-btn:hover, #restart-btn:hover {
-    background-color: #27ae60;
-    transform: scale(1.05) translateY(-3px);
-    box-shadow: 0 9px 0px #1e8449;
-}
-
-#start-btn:active, #restart-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 2px 0px #145a32;
-}
-
-#start-btn:disabled {
-    background-color: #bdc3c7 !important;
-    box-shadow: 0 6px 0px #95a5a6 !important;
-    cursor: not-allowed;
-    transform: none !important;
-    opacity: 0.8;
-}
-
+/* --- TRIUMPHAL VICTORY CARDS --- */
 #victory-screen {
     background: linear-gradient(135deg, #11998e, #38ef7d);
     display: flex;
@@ -208,6 +275,7 @@ canvas {
     align-items: center;
     z-index: 20;
     overflow: hidden;
+    padding: 20px;
 }
 
 .victory-content {
@@ -218,6 +286,7 @@ canvas {
 .trophy {
     font-size: 100px;
     margin-bottom: 5px;
+    display: inline-block;
     animation: bounce 0.8s infinite alternate ease-in-out;
 }
 
@@ -237,29 +306,24 @@ canvas {
 .victory-content p {
     font-size: 24px;
     font-weight: 600;
+    margin-top: 10px;
 }
 
 #win-restart-btn {
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
     padding: 15px 45px;
     font-size: 24px;
     background-color: #f1c40f;
     color: #2c3e50;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    margin-top: 25px;
     box-shadow: 0 6px 0px #f39c12;
-    transition: all 0.15s ease;
+    margin-top: 25px;
 }
 
 #win-restart-btn:hover {
     background-color: #f39c12;
-    transform: scale(1.05) translateY(-3px);
     box-shadow: 0 9px 0px #d35400;
 }
 
+/* --- DYNAMIC CONFETTI RENDER TRACKS --- */
 .confetti-container {
     position: absolute;
     top: -50px;
@@ -285,32 +349,4 @@ canvas {
 @keyframes fall {
     0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
     100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
-}
-
-/* 🚀 NEW PRELOADER UI PLACEMENTS WITHOUT BREAKING PREVIOUS SECTIONS */
-.preloader-box {
-    width: 280px;
-    margin-top: 20px;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: #2c3e50;
-    text-align: center;
-}
-
-.bar-bg {
-    width: 100%;
-    height: 14px;
-    background-color: rgba(0, 0, 0, 0.15);
-    border-radius: 10px;
-    margin-top: 6px;
-    overflow: hidden;
-}
-
-.bar-fill {
-    width: 0%;
-    height: 100%;
-    background: #2ecc71;
-    border-radius: 10px;
-    transition: width 0.3s ease-in-out;
 }
