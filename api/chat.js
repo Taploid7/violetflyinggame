@@ -1,80 +1,70 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize the Google Gen AI SDK using your environment variable
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export async function POST(req) {
-  try {
-    const { prompt } = await req.json();
+export default async function handler(req, res) {
+  // Handle CORS cross-origin preflight requests
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Define your model cascade array from highest priority to lowest
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  try {
+    const { prompt } = req.body;
+
     const modelQueue = [
-      "gemini-1.5-pro",   // Tier 1: Deepest reasoning, lowest quota
-      "gemini-1.5-flash", // Tier 2: Lightning fast, massive quota limits
-      "gemini-2.0-flash-exp" // Tier 3: Alternative flash version backup
+      "gemini-1.5-pro",
+      "gemini-1.5-flash"
     ];
 
     let aiResponse = null;
-    let errorLog = [];
 
-    // Loop through the models sequentially until one succeeds
     for (const modelName of modelQueue) {
       try {
-        console.log(`Attempting to generate quiz using model: ${modelName}`);
-        
         const response = await ai.models.generateContent({
           model: modelName,
           contents: prompt,
-          // Force JSON structure at the API configuration level for stability
           config: {
             responseMimeType: "application/json"
           }
         });
 
-        // If successful, capture the text content and break out of the loop
         if (response && response.text) {
           aiResponse = response.text;
-          console.log(`Success achieved using model: ${modelName}`);
           break; 
         }
       } catch (modelError) {
-        console.warn(`Model ${modelName} failed or out of quota. Error:`, modelError.message);
-        errorLog.push({ model: modelName, error: modelError.message });
-        // The loop continues automatically to the next fallback model in line
+        console.warn(`Model ${modelName} omitted. trying next target...`);
       }
     }
 
-    // If all online models fail due to quota exhaustion, trigger the ultimate server fallback
     if (!aiResponse) {
-      console.error("All Gemini API models exhausted or rate-limited. Serving emergency server-side backup.");
       aiResponse = generateEmergencyFallbackJSON(prompt);
     }
 
-    // Return the clean JSON back to your frontend chat.js file
-    return new Response(JSON.stringify({ reply: aiResponse }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(200).json({ reply: aiResponse });
 
   } catch (globalError) {
-    console.error("Critical server failure:", globalError);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    console.error(globalError);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
 
-/**
- * Emergency local parser to extract the word from the prompt and structure 
- * a flawless JSON response completely offline if all Google APIs go down.
- */
 function generateEmergencyFallbackJSON(prompt) {
-  // Regex pattern to extract the targeted word out of the sent text prompt string
   const wordMatch = prompt.match(/vocabulary word: "([^"]+)"/);
   const word = wordMatch ? wordMatch[1] : "Wrench";
 
   const fallbackObject = {
     question: `Look at the textbook word: "${word}". Can you pick the correct English match?`,
     options: [
-      `A core definition matching the item: ${word}`,
+      `A core tool or concept item matching: ${word}`,
       "An completely incorrect background item option",
       "An unrelated classroom verb choice",
       "A distraction answer choice matching food elements"
