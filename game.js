@@ -5,8 +5,8 @@ const ctx = canvas.getContext("2d");
 const violetSprite = new Image();
 violetSprite.src = "assets/violet.png"; 
 
-// Game Values
-let violet = { x: 100, y: 200, width: 50, height: 50, gravity: 0.25, velocity: 0 };
+// Game Values (Optimized for slower, smoother flight)
+let violet = { x: 100, y: 200, width: 60, height: 60, gravity: 0.10, velocity: 0 };
 let score = 0;
 let lives = 3;
 let isGameActive = true;
@@ -16,26 +16,26 @@ let isPausedForQuiz = false;
 let bgX = 0;
 const bgSpeed = 2;
 
-// --- JITTER EFFECT VARIABLES ---
+// --- DYNAMIC ENGINE SHAKING VARIABLES ---
 let jitterTimer = 0;
-const jitterSpeed = 0.5; // How fast she vibrates
-const jitterAmount = 3;  // How many pixels she vibrates up and down
+const jitterSpeed = 0.8; // Fast frequency for engine purr
+const jitterAmount = 5;  // Shakes 5 pixels up/down for visible feedback
 
-// Track user key configurations
+// Track spacebar inputs
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && isGameActive && !isPausedForQuiz) {
-        violet.velocity = -5.5; 
+        violet.velocity = -3.2; // Smooth upward lift tap
     }
 });
 
 function update() {
     if (!isGameActive || isPausedForQuiz) return;
 
-    // Apply standard engine physics gravity
+    // Apply standard engine physics gravity (Slow descent profile)
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
 
-    // Advance the jitter timer animation frame when the game is running
+    // Advance engine rumble clock frame
     jitterTimer += jitterSpeed;
 
     // Move the infinite looping background map framework coordinates leftward
@@ -44,7 +44,7 @@ function update() {
         bgX = 0;
     }
 
-    // Checking Bottom Collision or dipping under threshold lines
+    // Checking Bottom/Top Collision boundaries
     if (violet.y + violet.height >= canvas.height || violet.y <= 0) {
         triggerDippedQuizEvent();
     }
@@ -58,12 +58,16 @@ function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Continuous background generation render pipeline loop
-    ctx.fillStyle = "#87CEEB"; 
-    ctx.fillRect(bgX, 0, canvas.width, canvas.height);
-    ctx.fillRect(bgX + canvas.width, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#2c3e50"; // Dark sky backdrop
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw running track placeholders
+    ctx.fillStyle = "#34495e";
+    ctx.fillRect(bgX, 450, canvas.width, 50);
+    ctx.fillRect(bgX + canvas.width, 450, canvas.width, 50);
 
     // Calculate engine jitter offset position
-    // If paused, stop jittering so the screen looks stable
+    // Creates a constant buzzing effect while flying, freezes perfectly when paused
     let currentJitter = (isGameActive && !isPausedForQuiz) ? Math.sin(jitterTimer) * jitterAmount : 0;
     let renderedY = violet.y + currentJitter;
 
@@ -85,7 +89,7 @@ function gameLoop() {
 
 function triggerDippedQuizEvent() {
     isPausedForQuiz = true;
-    violet.y = 200; 
+    violet.y = 200; // Reset safely to the center screen line
     violet.velocity = 0;
     
     document.getElementById("quiz-modal").classList.remove("hidden");

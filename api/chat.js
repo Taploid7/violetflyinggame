@@ -1,9 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+// Using the standard built-in Vercel legacy library hook
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-export default async function handler(req, res) {
-  // Handle CORS cross-origin preflight requests
+module.exports = async function handler(req, res) {
+  // Fix cross-origin resource sharing permissions so GitHub Pages can talk to it
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,30 +17,30 @@ export default async function handler(req, res) {
 
   try {
     const { prompt } = req.body;
-
-    const modelQueue = [
-      "gemini-1.5-pro",
-      "gemini-1.5-flash"
-    ];
-
+    
+    // Initialize using the env variable you set up on your dashboard
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    // Fallback cascade using classic models
+    const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
     let aiResponse = null;
 
-    for (const modelName of modelQueue) {
+    for (const modelName of models) {
       try {
-        const response = await ai.models.generateContent({
+        const model = genAI.getGenerativeModel({ 
           model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json"
-          }
+          generationConfig: { responseMimeType: "application/json" }
         });
-
-        if (response && response.text) {
-          aiResponse = response.text;
-          break; 
+        
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        
+        if (response && response.text()) {
+          aiResponse = response.text();
+          break;
         }
-      } catch (modelError) {
-        console.warn(`Model ${modelName} omitted. trying next target...`);
+      } catch (e) {
+        console.warn(`Model ${modelName} skipped.`);
       }
     }
 
@@ -55,7 +54,7 @@ export default async function handler(req, res) {
     console.error(globalError);
     return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
 
 function generateEmergencyFallbackJSON(prompt) {
   const wordMatch = prompt.match(/vocabulary word: "([^"]+)"/);

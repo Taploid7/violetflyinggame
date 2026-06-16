@@ -1,8 +1,0 @@
-{
-  "name": "violet-flying-game-backend",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "@google/genai": "latest"
-  }
-}
