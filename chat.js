@@ -66,7 +66,8 @@ D) Small and fast
 Correct: A`;
 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                // 🔥 ENHANCED: Raised timeout to 12 seconds to support multiple waterfall hops
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
 
                 const response = await fetch(VERCEL_BACKEND_URL, {
                     method: "POST",
