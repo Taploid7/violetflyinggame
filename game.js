@@ -12,20 +12,31 @@ let score = 0;
 let lives = 3;
 let animationFrameId = null;
 
+// --- 🖼️ CUSTOM GAME ASSETS ---
+const violetImage = new Image();
+violetImage.src = 'assets/violet.png'; // Your custom Violet asset path
+
+const backgroundImage = new Image();
+backgroundImage.src = 'assets/background.png'; // Your custom parallax scrolling background asset path
+
+// --- Parallax Background Tracker ---
+let backgroundX = 0;
+const BACKGROUND_SPEED = 2; // Exact speed of your moving background track
+
 // --- Pilot Physics Entities ---
 let violet = {
     x: 100,
     y: 200,
-    width: 50,
-    height: 40,
-    gravity: 0.4,
-    lift: -7,
+    width: 65,   // Dimension adjustment matching your standard sprite proportions
+    height: 50,  // Dimension adjustment matching your standard sprite proportions
+    gravity: 0.35,
+    lift: -6.5,
     velocity: 0
 };
 
 // --- Obstacles Array Trackers ---
 let obstacles = [];
-const OBSTACLE_SPAWN_RATE = 100; // Frames between obstacles
+const OBSTACLE_SPAWN_RATE = 110; // Frames between obstacles
 let frameCount = 0;
 
 // =========================================================================
@@ -63,7 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    canvas.addEventListener("touchstart", () => {
+    canvas.addEventListener("touchstart", (e) => {
+        e.preventDefault();
         if (!isGameRunning || isQuizActive) return;
         violet.velocity = violet.lift;
     });
@@ -85,6 +97,7 @@ function initializeNewGame() {
     violet.velocity = 0;
     obstacles = [];
     frameCount = 0;
+    backgroundX = 0;
     isGameRunning = true;
     isQuizActive = false;
 
@@ -119,7 +132,7 @@ function runGameCycle() {
     if (!isGameRunning) return;
 
     if (!isQuizActive) {
-        clearCanvasFrame();
+        clearAndDrawBackground();
         updateGameObjects();
         drawGameObjects();
         checkCollisionBoundaries();
@@ -128,30 +141,37 @@ function runGameCycle() {
     animationFrameId = requestAnimationFrame(runGameCycle);
 }
 
-function clearCanvasFrame() {
-    // High visibility arcade background sky color fills
-    ctx.fillStyle = "#70c5ce";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+function clearAndDrawBackground() {
+    // 🌅 PARALLAX MOVING CANVAS FORMULA: Draws two images seamlessly looping back-to-back
+    backgroundX -= BACKGROUND_SPEED;
+    if (backgroundX <= -canvas.width) {
+        backgroundX = 0;
+    }
+
+    // Draw primary background layer frame
+    ctx.drawImage(backgroundImage, backgroundX, 0, canvas.width, canvas.height);
+    // Draw trailing background layer frame to prevent white spaces
+    ctx.drawImage(backgroundImage, backgroundX + canvas.width, 0, canvas.width, canvas.height);
 }
 
 function updateGameObjects() {
     frameCount++;
 
-    // Apply basic physics constants on the plane entity
+    // Apply physics gravity vectors on the plane entity
     violet.velocity += violet.gravity;
     violet.y += violet.velocity;
 
     // Generate random obstacles
     if (frameCount % OBSTACLE_SPAWN_RATE === 0) {
-        const minHeight = 40;
-        const maxHeight = 300;
+        const minHeight = 50;
+        const maxHeight = 280;
         const obstacleHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-        const gap = 140; // Passing clearing allowance space
+        const gap = 150; // Passing clearing allowance space for smooth flying
 
         obstacles.push({
             x: canvas.width,
             y: 0,
-            width: 60,
+            width: 65,
             height: obstacleHeight,
             passed: false,
             type: "top"
@@ -160,7 +180,7 @@ function updateGameObjects() {
         obstacles.push({
             x: canvas.width,
             y: obstacleHeight + gap,
-            width: 60,
+            width: 65,
             height: canvas.height - (obstacleHeight + gap),
             passed: false,
             type: "bottom"
@@ -169,7 +189,7 @@ function updateGameObjects() {
 
     // Move obstacles westward across player coordinates
     for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= 4; // Airspeed forward velocity scalar
+        obstacles[i].x -= 3.5; // Custom flight speed mapping matching your original assets
 
         // Score tracker rules calculations
         if (!obstacles[i].passed && obstacles[i].x + obstacles[i].width < violet.x) {
@@ -193,13 +213,8 @@ function updateGameObjects() {
 }
 
 function drawGameObjects() {
-    // 🛩️ Draw Violet the Pilot
-    ctx.fillStyle = "#e74c3c"; // Vibrant crimson pilot plane chassis body block style
-    ctx.fillRect(violet.x, violet.y, violet.width, violet.height);
-
-    // Pilot details (Propeller windows)
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(violet.x + violet.width - 15, violet.y + 10, 10, 10);
+    // 🛩️ Draw Violet the Pilot PNG Asset Sprite
+    ctx.drawImage(violetImage, violet.x, violet.y, violet.width, violet.height);
 
     // ⛰️ Draw Obstacles
     ctx.fillStyle = "#2ecc71"; // Emerald green mountain terrain vectors
@@ -235,7 +250,7 @@ function triggerTurbulenceIntercept() {
     isQuizActive = true;
     violet.y = 200; // Snap violet cleanly back to the center line safely
     violet.velocity = 0;
-    obstacles = []; // Flush active mountains on loop reset boundaries
+    obstacles = []; // Flush active obstacles on loop reset boundaries
 
     console.log("[Engine]: Intercepting loop execution. Firing recovery quiz...");
     
@@ -243,7 +258,6 @@ function triggerTurbulenceIntercept() {
     if (typeof window.useLoadedQuestion === "function") {
         window.useLoadedQuestion();
     } else {
-        // Emergency fail-safe handler recovery profile sequence
         console.error("Critical: useLoadedQuestion function link absent inside chat.js module profile context.");
         resumeGameAfterSave();
     }
